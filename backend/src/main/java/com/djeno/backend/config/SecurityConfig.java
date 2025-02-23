@@ -55,24 +55,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/verify-email").authenticated()
 
                         .requestMatchers("/user/**").authenticated()
-//                        // Эндпоинт подачи заявки на админа
-//                        .requestMatchers(HttpMethod.POST, "/admin/apply").authenticated()
-//
-//                        // Эндпоинты для администраторов
-//                        .requestMatchers(HttpMethod.GET, "/admin").hasRole("ADMIN")
-//                        .requestMatchers(HttpMethod.PATCH, "/admin/{requestId}/approve").hasRole("ADMIN")
-//                        .requestMatchers(HttpMethod.PATCH, "/admin/{requestId}/reject").hasRole("ADMIN")
-//
-//                        // Импорт файла
-//                        .requestMatchers(HttpMethod.GET, "/import/history/admin").hasRole("ADMIN")
-//                        .requestMatchers(HttpMethod.GET, "/import/history/user").authenticated()
-//                        .requestMatchers(HttpMethod.POST, "/import/yaml").authenticated()
-//
-//                        // Эндпоинты для работы с данными
-//                        .requestMatchers(HttpMethod.GET, "/study-groups/**","/persons/**", "/locations/**", "/coordinates/**").authenticated()
-//                        .requestMatchers(HttpMethod.POST, "/study-groups/**", "/persons/**", "/locations/**", "/coordinates/**").authenticated()
-//                        .requestMatchers(HttpMethod.PUT, "/study-groups/**","/persons/**", "/locations/**", "/coordinates/**").authenticated()
-//                        .requestMatchers(HttpMethod.DELETE, "/study-groups/**","/persons/**", "/locations/**", "/coordinates/**").authenticated()
+                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "MAIN_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/admin/grant-admin/**", "/admin/revoke-admin/**", "/admin/grant-main-admin/**").hasRole("MAIN_ADMIN")
 
 
                         .anyRequest().authenticated())

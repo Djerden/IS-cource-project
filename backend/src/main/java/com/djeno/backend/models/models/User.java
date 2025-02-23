@@ -75,6 +75,13 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Boolean twoFactorEnabled = false;
 
+    // Поля для бана
+    @Column(nullable = false)
+    private Boolean isBanned = false;
+
+    @Column
+    private String banReason;
+
     @PrePersist
     public void onPrePersist() {
         if (createdAt == null) {
@@ -91,6 +98,9 @@ public class User implements UserDetails {
         }
         if (twoFactorEnabled == null) {
             twoFactorEnabled = false;
+        }
+        if (isBanned == null) {
+            isBanned = false;
         }
     }
 
