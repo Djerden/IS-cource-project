@@ -18,6 +18,17 @@ public class UserController {
 
     private final UserService userService;
 
+    // Метод, который вернет необходимые данные для хедера: username, аватар профиля
+
+
+
+
+    /**
+     * Эндпоинт изменяет пользовательские данные такие как:
+     * name, middleName, surname, description
+     * @param userDetailsUpdate
+     * @return
+     */
     @PostMapping("/update-user-details")
     public ResponseEntity<SimpleMessage> updateUserDetails(@RequestBody UserDetailsUpdate userDetailsUpdate) {
         userService.updateUserDetails(userDetailsUpdate);

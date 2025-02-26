@@ -308,12 +308,12 @@ public class UserService {
      * @return созданный пользователь
      */
     public User create(User user) {
-        if (userRepository.existsByUsername(user.getUsername())) {
-            // Заменить на свои исключения
+        if (isUsernameExists(user.getUsername())) {
+
             throw new RuntimeException("Пользователь с таким именем уже существует");
         }
 
-        if (userRepository.existsByEmail(user.getEmail())) {
+        if (isEmailExists(user.getEmail())) {
             throw new RuntimeException("Пользователь с таким email уже существует");
         }
 
