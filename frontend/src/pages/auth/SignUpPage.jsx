@@ -1,16 +1,22 @@
-import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useState } from 'react';
+import {NavLink, useNavigate} from 'react-router-dom';
 import BackgroundImage from '../../components/BackgroundImage.jsx';
 
 export default function SignUpPage() {
+    const navigate = useNavigate();
+
     // Состояния для полей формы
-    const [profileType, setProfileType] = useState('Customer'); // Тип профиля (Customer или Freelancer)
+    const [profileType, setProfileType] = useState('ROLE_CUSTOMER'); // Тип профиля (Customer или Freelancer)
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [passwordStrength, setPasswordStrength] = useState('');
     const [passwordsMatch, setPasswordsMatch] = useState(true);
+
+    // Состояния для ошибок
+    const [usernameError, setUsernameError] = useState('');
+    const [emailError, setEmailError] = useState('');
 
     // Функция для проверки надёжности пароля
     const checkPasswordStrength = (password) => {
@@ -63,18 +69,67 @@ export default function SignUpPage() {
     };
 
     // Обработчик отправки формы
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Сброс ошибок
+        setUsernameError('');
+        setEmailError('');
+
+        // Проверка совпадения паролей
         if (password !== confirmPassword) {
             alert('Passwords do not match!');
             return;
         }
-        // Здесь можно добавить логику для отправки данных на сервер
-        console.log('Profile Type:', profileType);
-        console.log('Email:', email);
-        console.log('Username:', username);
-        console.log('Password:', password);
-        alert('Registration successful!');
+
+        // Подготовка данных для отправки
+        const signUpData = {
+            role: profileType,
+            username: username.trim(),
+            email: email.trim(),
+            password: password,
+        };
+
+        try {
+            // Отправка данных на сервер
+            const response = await fetch('http://localhost:8080/auth/sign-up', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(signUpData),
+            });
+
+            // Обработка ответа
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.log(errorData);
+                if (errorData.message.includes('username')) {
+                    setUsernameError('Username is already taken.');
+                } else if (errorData.message.includes('email')) {
+                    setEmailError('Email is already registered.');
+                } else {
+                    alert('Registration failed. Please try again.');
+                }
+                return;
+            }
+
+            // Успешная регистрация
+            const result = await response.json();
+            console.log('Registration successful:', result);
+
+            const jwtToken = result.token
+            if (jwtToken) {
+                localStorage.setItem('jwt', jwtToken);
+            }
+
+            // Переход на страницу подтверждения email
+            navigate('/confirm-email');
+
+        } catch (error) {
+            console.error('Error during registration:', error);
+            alert('An error occurred. Please try again.');
+        }
     };
 
     return (
@@ -93,9 +148,9 @@ export default function SignUpPage() {
                         <div className="flex space-x-2">
                             <button
                                 type="button"
-                                onClick={() => setProfileType('Customer')}
+                                onClick={() => setProfileType('ROLE_CUSTOMER')}
                                 className={`flex-1 py-2 px-4 rounded focus:outline-none ${
-                                    profileType === 'Customer'
+                                    profileType === 'ROLE_CUSTOMER'
                                         ? 'bg-indigo-500 text-white'
                                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                 }`}
@@ -104,9 +159,9 @@ export default function SignUpPage() {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setProfileType('Freelancer')}
+                                onClick={() => setProfileType('ROLE_FREELANCER')}
                                 className={`flex-1 py-2 px-4 rounded focus:outline-none ${
-                                    profileType === 'Freelancer'
+                                    profileType === 'ROLE_FREELANCER'
                                         ? 'bg-indigo-500 text-white'
                                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                 }`}
@@ -128,9 +183,14 @@ export default function SignUpPage() {
                             placeholder="Enter your email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            className={`w-full px-3 py-2 border ${
+                                emailError ? 'border-red-500' : 'border-gray-300'
+                            } rounded focus:outline-none focus:ring-2 focus:ring-indigo-400`}
                             required
                         />
+                        {emailError && (
+                            <p className="text-sm text-red-500 mt-1">{emailError}</p>
+                        )}
                     </div>
 
                     {/* Поле для ввода username */}
@@ -145,9 +205,14 @@ export default function SignUpPage() {
                             placeholder="Enter your username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            className={`w-full px-3 py-2 border ${
+                                usernameError ? 'border-red-500' : 'border-gray-300'
+                            } rounded focus:outline-none focus:ring-2 focus:ring-indigo-400`}
                             required
                         />
+                        {usernameError && (
+                            <p className="text-sm text-red-500 mt-1">{usernameError}</p>
+                        )}
                     </div>
 
                     {/* Поле для ввода пароля */}

@@ -1,26 +1,77 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import BackgroundImage from "../../components/BackgroundImage.jsx";
-
+import { useNavigate } from 'react-router-dom';
 
 export default function ConfirmEmailPage() {
-    const [code, setCode] = useState(['', '', '', '', '', '']); // Состояние для хранения кода
-    const [error, setError] = useState(''); // Состояние для ошибки
-    const inputs = useRef([]); // Рефы для инпутов
+    const [code, setCode] = useState(['', '', '', '', '', '']);
+    const [error, setError] = useState('');
+    const [message, setMessage] = useState('');
+    const [isResendDisabled, setIsResendDisabled] = useState(false); // Флаг для блокировки кнопки
+    const [countdown, setCountdown] = useState(30); // Таймер на 30 секунд
+    const [isFirstSend, setIsFirstSend] = useState(true); // Флаг для первого нажатия
+
+    const inputs = useRef([]);
+    const navigate = useNavigate();
+
+    // Функция для запуска таймера
+    const startCountdown = () => {
+        setIsResendDisabled(true);
+        setCountdown(30);
+
+        const interval = setInterval(() => {
+            setCountdown((prev) => {
+                if (prev === 1) {
+                    clearInterval(interval);
+                    setIsResendDisabled(false);
+                }
+                return prev - 1;
+            });
+        }, 1000); // Обновляем таймер каждую секунду
+    };
+
+    // Отправка кода подтверждения
+    const sendVerificationCode = async () => {
+        const token = localStorage.getItem('jwt');
+        try {
+            const response = await fetch('http://localhost:8080/auth/send-email-verification-code', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (response.ok) {
+                setMessage('A verification code has been sent to your email');
+            } else {
+                setError('Failed to send verification code.');
+            }
+        } catch (error) {
+            setError('An error occurred while sending the verification code.');
+        }
+    };
+
+    // Обработчик нажатия на кнопку отправки/повторной отправки
+    const handleSendCode = () => {
+        if (isFirstSend) {
+            setIsFirstSend(false); // Убираем флаг первого нажатия
+        }
+        sendVerificationCode();
+        startCountdown(); // Запускаем таймер
+    };
 
     // Обработчик изменения значения в инпуте
     const handleChange = (index, value) => {
         const newCode = [...code];
         newCode[index] = value;
         setCode(newCode);
-        setError(''); // Сбрасываем ошибку при изменении кода
+        setError('');
 
-        // Автоматически переходим к следующему инпуту
         if (value && index < 5) {
             inputs.current[index + 1].focus();
         }
     };
 
-    // Обработчик нажатия клавиш (для удаления и перехода между инпутами)
+    // Обработчик нажатия клавиш
     const handleKeyDown = (index, e) => {
         if (e.key === 'Backspace' && !code[index] && index > 0) {
             inputs.current[index - 1].focus();
@@ -28,43 +79,41 @@ export default function ConfirmEmailPage() {
     };
 
     // Обработчик подтверждения кода
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         const fullCode = code.join('');
         if (fullCode.length !== 6) {
             setError('Please, enter the 6-digit code.');
             return;
         }
 
-        // Здесь можно добавить логику для отправки кода на сервер
-        // Например, имитируем проверку кода
-        const isCodeValid = validateCodeOnServer(fullCode); // Заглушка для проверки кода
-
-        if (isCodeValid) {
-            alert('The email is confirmed!');
-            setError('');
-        } else {
-            setError('Invalid code. Please, try again.');
+        const token = localStorage.getItem('jwt');
+        try {
+            const response = await fetch('http://localhost:8080/auth/verify-email', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ code: fullCode })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                alert('The email is confirmed!');
+                navigate('/fill-user-details');
+            } else {
+                setError(data.message || 'Invalid code. Please, try again.');
+            }
+        } catch (error) {
+            setError('An error occurred while verifying the code.');
         }
     };
-
-    // Заглушка для проверки кода на сервере
-    const validateCodeOnServer = (code) => {
-        // В реальном приложении здесь будет запрос к серверу
-        // Например, возвращаем true, если код равен "123456"
-        return code === '123456';
-    };
-
-    // Автофокус на первый инпут при монтировании
-    useEffect(() => {
-        inputs.current[0].focus();
-    }, []);
 
     return (
         <BackgroundImage>
             <div className="bg-white p-8 rounded-lg shadow-lg w-96">
                 <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">Confirm Email</h1>
+                {message && <p className="text-sm text-green-500 mb-4 text-center">{message}</p>}
 
-                {/* Поле для ввода 6-значного кода */}
                 <div className="flex justify-between mb-4">
                     {code.map((digit, index) => (
                         <input
@@ -82,17 +131,23 @@ export default function ConfirmEmailPage() {
                     ))}
                 </div>
 
-                {/* Сообщение об ошибке */}
-                {error && (
-                    <p className="text-sm text-red-500 mb-4 text-center">{error}</p>
-                )}
+                {error && <p className="text-sm text-red-500 mb-4 text-center">{error}</p>}
 
-                {/* Кнопка подтверждения */}
                 <button
                     onClick={handleSubmit}
-                    className="w-full bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-full bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-4"
                 >
                     Confirm
+                </button>
+
+                <button
+                    onClick={handleSendCode}
+                    disabled={isResendDisabled} // Блокируем кнопку, если таймер активен
+                    className={`w-full text-indigo-500 py-2 px-4 rounded focus:outline-none ${
+                        isResendDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-indigo-600'
+                    }`}
+                >
+                    {isFirstSend ? 'Send Code' : (isResendDisabled ? `Resend in ${countdown}s` : 'Resend Verification Code')}
                 </button>
             </div>
         </BackgroundImage>

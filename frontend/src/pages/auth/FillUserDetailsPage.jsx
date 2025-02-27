@@ -1,30 +1,52 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BackgroundImage from "../../components/BackgroundImage.jsx";
 
 export default function FillUserDetails() {
-    // Состояния для полей формы
     const [name, setName] = useState('');
     const [surname, setSurname] = useState('');
     const [middleName, setMiddleName] = useState('');
     const [description, setDescription] = useState('');
+    const navigate = useNavigate();
 
     // Обработчик отправки формы
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+
         const userDetails = {
             name,
             surname,
             middleName,
             description,
         };
-        console.log('User Details:', userDetails);
-        alert('Profile updated successfully!');
+
+        const token = localStorage.getItem('jwt'); // Получаем JWT токен из localStorage
+
+        try {
+            const response = await fetch('http://localhost:8080/user/update-user-details', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userDetails),
+            });
+
+            if (response.ok) {
+                alert('Profile updated successfully!');
+                navigate('/orders'); // Перенаправляем на страницу /orders
+            } else {
+                const data = await response.json();
+                alert(data.message || 'Failed to update profile.');
+            }
+        } catch (error) {
+            alert('An error occurred while updating the profile.');
+        }
     };
 
     // Обработчик пропуска
     const handleSkip = () => {
-        alert('Skipping profile update.');
-        // Здесь можно добавить логику для перехода на следующую страницу
+        navigate('/orders'); // Перенаправляем на страницу /orders
     };
 
     return (

@@ -2,14 +2,13 @@ package com.djeno.backend.controllers;
 
 import com.djeno.backend.models.DTO.SimpleMessage;
 import com.djeno.backend.models.DTO.UserDetailsUpdate;
+import com.djeno.backend.models.DTO.UserHeaderinfo;
 import com.djeno.backend.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor
 @RequestMapping("/user")
@@ -19,7 +18,11 @@ public class UserController {
     private final UserService userService;
 
     // Метод, который вернет необходимые данные для хедера: username, аватар профиля
-
+    @GetMapping("/get-user-header-info")
+    public ResponseEntity<UserHeaderinfo> getUserHeaderInfo() {
+        UserHeaderinfo userHeaderinfo = userService.getUserHeaderinfo();
+        return ResponseEntity.ok(userHeaderinfo);
+    }
 
 
 

@@ -1,6 +1,9 @@
 package com.djeno.backend.services;
 
+import com.djeno.backend.exceptions.EmailAlreadyExistsException;
+import com.djeno.backend.exceptions.UsernameAlreadyExistsException;
 import com.djeno.backend.models.DTO.UserDetailsUpdate;
+import com.djeno.backend.models.DTO.UserHeaderinfo;
 import com.djeno.backend.models.DTO.UserListDTO;
 import com.djeno.backend.models.enums.Role;
 import com.djeno.backend.models.mappers.UserListMapper;
@@ -23,6 +26,15 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+
+
+    public UserHeaderinfo getUserHeaderinfo() {
+        User currentUser = getCurrentUser();
+        UserHeaderinfo userHeaderinfo = new UserHeaderinfo();
+        userHeaderinfo.setUsername(currentUser.getUsername());
+        userHeaderinfo.setRole(currentUser.getRole().toString());
+        return userHeaderinfo;
+    }
 
     /**
      * Метод для выдачи бана пользователю
@@ -310,11 +322,11 @@ public class UserService {
     public User create(User user) {
         if (isUsernameExists(user.getUsername())) {
 
-            throw new RuntimeException("Пользователь с таким именем уже существует");
+            throw new UsernameAlreadyExistsException("User with that username already exists");
         }
 
         if (isEmailExists(user.getEmail())) {
-            throw new RuntimeException("Пользователь с таким email уже существует");
+            throw new EmailAlreadyExistsException("User with this email already exists");
         }
 
         return save(user);

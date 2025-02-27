@@ -1,40 +1,84 @@
-import {NavLink} from 'react-router-dom'
-import {useEffect, useState} from "react";
-import {Avatar} from "antd";
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Avatar, Dropdown, Menu } from 'antd';
+import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
 
 export default function Header() {
-
+    const navigate = useNavigate();
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [avatarUrl, setAvatarUrl] = useState(null);
 
-    useEffect(() => {
-        const token = localStorage.getItem("jwt");
-
-        if (token) {
-            fetch("/api/user", {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            })
-                .then((response) => response.json())
-                .then((data) => {
-                    setUser(data);
-                    setLoading(false);
-                })
-                .catch((error) => {
-                    console.error("Error fetching user data:", error);
-                    setLoading(false);
-                });
-        } else {
-            setLoading(false);
+    // Функция для декодирования JWT токена
+    const decodeJWT = (token) => {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const payload = JSON.parse(atob(base64));
+            return payload;
+        } catch (error) {
+            console.error('Error decoding JWT:', error);
+            return null;
         }
+    };
+
+    // Функция для обновления состояния пользователя
+    const updateUserFromToken = () => {
+        const token = localStorage.getItem('jwt');
+        if (token) {
+            const payload = decodeJWT(token);
+            if (payload) {
+                setUser({
+                    id: payload.id,
+                    username: payload.username,
+                    email: payload.email,
+                    role: payload.role,
+                });
+            }
+        } else {
+            setUser(null);
+            setAvatarUrl(null);
+        }
+    };
+
+    // Проверка токена и установка пользователя
+    useEffect(() => {
+        const token = localStorage.getItem('jwt');
+        updateUserFromToken(token);
+
+        // Интервал для проверки изменения токена
+        const interval = setInterval(() => {
+            const currentToken = localStorage.getItem('jwt');
+            if (currentToken !== token) {
+                updateUserFromToken(currentToken);
+            }
+        }, 500); // Проверяем каждые 500 мс
+
+        // Очистка интервала при размонтировании компонента
+        return () => clearInterval(interval);
     }, []);
 
+    // Обработчик выхода
     const handleLogout = () => {
-        localStorage.removeItem("jwt");
+        localStorage.removeItem('jwt');
         setUser(null);
+        setAvatarUrl(null);
+        navigate('/sign-in');
     };
+
+    // Меню для Dropdown
+    const menu = (
+        <Menu>
+            <Menu.Item key="profile" onClick={() => navigate(`/profile/${user?.username}`)}>
+                <UserOutlined /> Profile
+            </Menu.Item>
+            <Menu.Item key="settings" onClick={() => navigate('/settings')}>
+                <SettingOutlined /> Settings
+            </Menu.Item>
+            <Menu.Item key="logout" onClick={handleLogout}>
+                <LogoutOutlined /> Log out
+            </Menu.Item>
+        </Menu>
+    );
 
     return (
         <header className="bg-black text-white p-4">
@@ -57,16 +101,19 @@ export default function Header() {
                     <NavLink to="/help" className="text-white hover:text-indigo-500">
                         Help
                     </NavLink>
+                    <NavLink to="/admin-panel" className="text-white hover:text-indigo-500">
+                        Admin Panel
+                    </NavLink>
                 </nav>
 
-                <div className="flex items-center space-x-4">
-                    {loading ? (
-                        <div>Loading...</div>
-                    ) : user ? (
-                        <div className="flex items-center space-x-2">
-                            <Avatar src={user.avatar} />
-                            <span className="text-white">{user.username}</span>
-                        </div>
+                <div className="flex items-center space-x-4" >
+                    {user ? (
+                        <Dropdown overlay={menu} trigger={['hover']} placement="bottomRight">
+                            <div className="flex items-center space-x-2 cursor-pointer">
+                                <span className="text-white">{user.username}</span>
+                                <Avatar src={avatarUrl} icon={<UserOutlined/>} />
+                            </div>
+                        </Dropdown>
                     ) : (
                         <>
                             <NavLink to="/sign-in" className="text-white hover:text-indigo-500">

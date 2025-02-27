@@ -51,20 +51,18 @@ function App() {
                 {
                     path: '/admin-panel',
                     element: <AdminPanelPage />,
-                    children: [
-                        {
-                            path: '/admins',
-                            element: <AdminListPage />
-                        },
-                        {
-                            path: '/users',
-                            element: <UsersListPage />
-                        },
-                        {
-                            path: '/disputes',
-                            element: <DisputesListPage />
-                        },
-                    ]
+                },
+                {
+                    path: '/admin-panel/admins',
+                    element: <AdminListPage />
+                },
+                {
+                    path: '/admin-panel/users',
+                    element: <UsersListPage />
+                },
+                {
+                    path: '/admin-panel/disputes',
+                    element: <DisputesListPage />
                 },
                 {
                     path: '/sign-in',
@@ -83,15 +81,15 @@ function App() {
                     element: <FillUserDetails />
                 },
                 {
-                    path: '/profile/:username', // Динамический путь для профиля (искать по username или id?)
+                    path: '/profile/:username',
                     element: <ProfilePage />
                 },
                 {
-                    path: '/project/:projectId', // Проект принимаем по id
+                    path: '/project/:projectId',
                     element: <ProjectPage />
                 },
                 {
-                    path: '/settings', // Проект принимаем по id
+                    path: '/settings',
                     element: <SettingsPage />
                 }
 
