@@ -1,4 +1,4 @@
-import HelpCard from './../components/help/HelpCard.jsx';
+import { useParams } from 'react-router-dom';
 
 // Тестовые данные для карточек
 const testHelpCards = [
@@ -40,24 +40,19 @@ const testHelpCards = [
     },
 ];
 
-export default function Help() {
+export default function HelpCardPage() {
+    const { id } = useParams();
+    const card = testHelpCards.find((card) => card.id === parseInt(id));
+
+    if (!card) {
+        return <div className="p-8 text-center text-red-600">Card not found.</div>;
+    }
+
     return (
         <div className="p-8">
-            <div className="max-w-6xl mx-auto">
-                {/* Почта для связи */}
-                <div className="text-center mb-8">
-                    <p className="text-gray-600">If you need further assistance, please contact us at:</p>
-                    <a href="mailto:support@example.com" className="text-indigo-600 hover:text-indigo-500">
-                        support@example.com
-                    </a>
-                </div>
-
-                {/* Сетка карточек */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {testHelpCards.map((card) => (
-                        <HelpCard key={card.id} id={card.id} title={card.title} description={card.description} />
-                    ))}
-                </div>
+            <div className="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
+                <h1 className="text-2xl font-bold text-gray-800 mb-4">{card.title}</h1>
+                <p className="text-gray-600">{card.content}</p>
             </div>
         </div>
     );

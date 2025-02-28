@@ -17,6 +17,9 @@ import AdminPanelPage from "./pages/admin-pages/AdminPanelPage.jsx";
 import AdminListPage from "./pages/admin-pages/AdminListPage.jsx";
 import UsersListPage from "./pages/admin-pages/UsersListPage.jsx";
 import DisputesListPage from "./pages/admin-pages/DisputesListPage.jsx";
+import HelpCardPage from "./pages/HelpCardPage.jsx";
+import BlogCardPage from "./pages/BlogCardPage.jsx";
+import CreateArticleForBlogPage from "./pages/CreateArticleForBlogPage.jsx";
 
 function App() {
 
@@ -45,8 +48,20 @@ function App() {
                     element: <Blog />
                 },
                 {
+                    path: '/blog/:id',
+                    element: <BlogCardPage />
+                },
+                {
+                    path: '/blog/write-article',
+                    element: <CreateArticleForBlogPage />
+                },
+                {
                     path: '/help',
                     element: <Help />
+                },
+                {
+                    path: '/help/:id',
+                    element: <HelpCardPage />
                 },
                 {
                     path: '/admin-panel',
