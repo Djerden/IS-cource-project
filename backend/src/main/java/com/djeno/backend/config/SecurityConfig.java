@@ -58,6 +58,12 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "MAIN_ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/admin/grant-admin/**", "/admin/revoke-admin/**", "/admin/grant-main-admin/**").hasRole("MAIN_ADMIN")
 
+                        .requestMatchers("/help/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/help/articles").hasAnyRole("ADMIN", "MAIN_ADMIN")
+
+                        .requestMatchers("/blog/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/blog/article").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/blog/articles/**").permitAll()//.hasAnyRole("ADMIN", "MAIN_ADMIN")
 
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))

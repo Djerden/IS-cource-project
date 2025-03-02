@@ -124,7 +124,7 @@ export default function SignUpPage() {
             }
 
             // Переход на страницу подтверждения email
-            navigate('/confirm-email');
+            navigate('/confirm-email', { state: { from: window.location.pathname } });
 
         } catch (error) {
             console.error('Error during registration:', error);

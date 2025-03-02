@@ -1,24 +1,32 @@
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { Pagination } from 'antd';
 import BlogCard from './../components/blog/BlogCard.jsx';
 
-const articles = [
-    {
-        id: 1,
-        title: 'Как начать программировать на React',
-        description: 'Введение в основы React и создание первого приложения.',
-        imageUrl: 'https://via.placeholder.com/1200x400', // Увеличил ширину изображения
-        content: 'Полное руководство по React...'
-    },
-    {
-        id: 2,
-        title: 'Лучшие практики JavaScript',
-        description: 'Советы и рекомендации по написанию чистого и эффективного кода на JavaScript.',
-        imageUrl: 'https://via.placeholder.com/1200x400', // Увеличил ширину изображения
-        content: 'Советы по JavaScript...'
-    }
-];
-
 export default function Blog() {
+    const [articles, setArticles] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+
+    const fetchArticles = async (page = 1, size = 10) => {
+        try {
+            const response = await fetch(`http://localhost:8080/blog/articles?page=${page - 1}&size=${size}`);
+            const data = await response.json();
+            setArticles(data.content);
+            setTotalPages(data.totalPages);
+        } catch (error) {
+            console.error('Ошибка при загрузке статей:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchArticles(currentPage);
+    }, [currentPage]);
+
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
+    };
+
     return (
         <div className="p-8">
             <div className="max-w-6xl mx-auto">
@@ -30,11 +38,22 @@ export default function Blog() {
                     Написать статью
                 </NavLink>
 
-                {/* Список статей (одна под другой) */}
+                {/* Список статей */}
                 <div className="space-y-8">
                     {articles.map((article) => (
                         <BlogCard key={article.id} article={article} />
                     ))}
+                </div>
+
+                {/* Пагинация */}
+                <div className="mt-8 flex justify-center">
+                    <Pagination
+                        current={currentPage}
+                        total={totalPages * 10} // Общее количество элементов
+                        pageSize={10} // Количество элементов на странице
+                        onChange={handlePageChange}
+                        showSizeChanger={false}
+                    />
                 </div>
             </div>
         </div>

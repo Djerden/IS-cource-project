@@ -9,6 +9,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(ArticleNotFoundException.class)
+    public ResponseEntity<SimpleMessage> handleArticleNotFoundException(ArticleNotFoundException e) {
+        SimpleMessage message = new SimpleMessage(e.getMessage());
+        return new ResponseEntity<>(message, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(UsernameAlreadyExistsException.class)
     public ResponseEntity<SimpleMessage> handleUsernameAlreadyExistsException(UsernameAlreadyExistsException e) {
         SimpleMessage message = new SimpleMessage(e.getMessage());

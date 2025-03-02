@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react';
 import BackgroundImage from "../../components/BackgroundImage.jsx";
-import { useNavigate } from 'react-router-dom';
+import {useLocation, useNavigate} from 'react-router-dom';
+import {message} from "antd";
 
 export default function ConfirmEmailPage() {
     const [code, setCode] = useState(['', '', '', '', '', '']);
     const [error, setError] = useState('');
-    const [message, setMessage] = useState('');
+    const [messageInfo, setMessageInfo] = useState('');
     const [isResendDisabled, setIsResendDisabled] = useState(false); // Флаг для блокировки кнопки
     const [countdown, setCountdown] = useState(30); // Таймер на 30 секунд
     const [isFirstSend, setIsFirstSend] = useState(true); // Флаг для первого нажатия
@@ -13,6 +14,11 @@ export default function ConfirmEmailPage() {
     const inputs = useRef([]);
     const navigate = useNavigate();
 
+    const location = useLocation(); // Хук для получения информации о текущем пути
+    // Получаем путь, с которого пришел пользователь
+    const fromPath = location?.state?.from || 'Unknown'; // Если state передан, берем его, иначе 'Unknown'
+
+    console.log(fromPath);
     // Функция для запуска таймера
     const startCountdown = () => {
         setIsResendDisabled(true);
@@ -41,7 +47,7 @@ export default function ConfirmEmailPage() {
                 }
             });
             if (response.ok) {
-                setMessage('A verification code has been sent to your email');
+                setMessageInfo('A verification code has been sent to your email');
             } else {
                 setError('Failed to send verification code.');
             }
@@ -98,7 +104,10 @@ export default function ConfirmEmailPage() {
             });
             const data = await response.json();
             if (response.ok) {
-                alert('The email is confirmed!');
+                message.success('The email is confirmed!');
+                if (fromPath === '/settings') {
+                    navigate('/settings');
+                } else if (fromPath === '/sign-up')
                 navigate('/fill-user-details');
             } else {
                 setError(data.message || 'Invalid code. Please, try again.');
@@ -112,7 +121,7 @@ export default function ConfirmEmailPage() {
         <BackgroundImage>
             <div className="bg-white p-8 rounded-lg shadow-lg w-96">
                 <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">Confirm Email</h1>
-                {message && <p className="text-sm text-green-500 mb-4 text-center">{message}</p>}
+                {messageInfo && <p className="text-sm text-green-500 mb-4 text-center">{messageInfo}</p>}
 
                 <div className="flex justify-between mb-4">
                     {code.map((digit, index) => (

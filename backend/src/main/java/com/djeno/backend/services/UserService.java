@@ -2,30 +2,210 @@ package com.djeno.backend.services;
 
 import com.djeno.backend.exceptions.EmailAlreadyExistsException;
 import com.djeno.backend.exceptions.UsernameAlreadyExistsException;
-import com.djeno.backend.models.DTO.UserDetailsUpdate;
+import com.djeno.backend.models.DTO.user.UserDetailsUpdate;
 import com.djeno.backend.models.DTO.UserHeaderinfo;
 import com.djeno.backend.models.DTO.UserListDTO;
+import com.djeno.backend.models.DTO.user.ChangePasswordRequest;
+import com.djeno.backend.models.DTO.user.UserProfileInfo;
 import com.djeno.backend.models.enums.Role;
 import com.djeno.backend.models.mappers.UserListMapper;
+import com.djeno.backend.models.models.Skill;
 import com.djeno.backend.models.models.User;
+import com.djeno.backend.models.models.UserSkill;
+import com.djeno.backend.repositories.SkillRepository;
 import com.djeno.backend.repositories.UserRepository;
+import com.djeno.backend.repositories.UserSkillRepository;
 import com.djeno.backend.repositories.specification.UserSpecification;
 import lombok.RequiredArgsConstructor;
+import org.apache.tika.Tika;
+import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
+    private final SkillRepository skillRepository;
+    private final UserSkillRepository userSkillRepository;
+
+    private final MinioService minioService;
+    private final ApplicationContext applicationContext;
+
+    /**
+     * Создать новый навык
+     */
+    public Skill createSkill(String skillName) {
+        User currentUser = getCurrentUser();
+
+        // Проверяем, имеет ли пользователь права на создание навыка
+        if (currentUser.getRole() != Role.ROLE_ADMIN && currentUser.getRole() != Role.ROLE_MAIN_ADMIN) {
+            throw new RuntimeException("Недостаточно прав для создания навыка");
+        }
+
+        // Проверяем, существует ли навык с таким именем
+        if (skillRepository.findByName(skillName).isPresent()) {
+            throw new RuntimeException("Навык с таким именем уже существует");
+        }
+
+        // Создаем новый навык
+        Skill skill = new Skill();
+        skill.setName(skillName);
+        return skillRepository.save(skill);
+    }
+
+    /**
+     * Получить все навыки
+     */
+    public List<Skill> getAllSkills() {
+        return skillRepository.findAll();
+    }
+
+    /**
+     * Получить навыки пользователя
+     */
+    public List<Skill> getUserSkills() {
+        User currentUser = getCurrentUser();
+        return userSkillRepository.findByUser(currentUser).stream()
+                .map(UserSkill::getSkill)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Добавить навык пользователю
+     */
+    public void addSkillToUser(Long skillId) {
+        User currentUser = getCurrentUser();
+        if (currentUser.getRole() != Role.ROLE_FREELANCER) {
+            throw new RuntimeException("Только пользователи с ролью ROLE_FREELANCER могут добавлять навыки");
+        }
+
+        Skill skill = skillRepository.findById(skillId)
+                .orElseThrow(() -> new RuntimeException("Навык не найден"));
+
+        // Проверяем, есть ли уже такой навык у пользователя
+        if (userSkillRepository.findByUserAndSkill(currentUser, skill).isPresent()) {
+            throw new RuntimeException("Навык уже добавлен пользователю");
+        }
+
+        UserSkill userSkill = UserSkill.create(currentUser, skill);
+        userSkillRepository.save(userSkill);
+    }
+
+    /**
+     * Удалить навык у пользователя
+     */
+    public void removeSkillFromUser(Long skillId) {
+        User currentUser = getCurrentUser();
+        if (currentUser.getRole() != Role.ROLE_FREELANCER) {
+            throw new RuntimeException("Только пользователи с ролью ROLE_FREELANCER могут удалять навыки");
+        }
+
+        Skill skill = skillRepository.findById(skillId)
+                .orElseThrow(() -> new RuntimeException("Навык не найден"));
+
+        UserSkill userSkill = userSkillRepository.findByUserAndSkill(currentUser, skill)
+                .orElseThrow(() -> new RuntimeException("Навык не найден у пользователя"));
+
+        userSkillRepository.delete(userSkill);
+    }
+
+    public void changeUsername(String newUsername) {
+        User currentUser = getCurrentUser();
+        if (isUsernameExists(newUsername)) {
+            throw new UsernameAlreadyExistsException("Имя пользователя уже занято");
+        }
+        currentUser.setUsername(newUsername);
+        save(currentUser);
+    }
+
+    public void changeEmail(String newEmail) {
+        User currentUser = getCurrentUser();
+        if (isEmailExists(newEmail)) {
+            throw new EmailAlreadyExistsException("Email уже занят");
+        }
+        currentUser.setEmail(newEmail);
+        currentUser.setIsEmailVerified(false);
+        save(currentUser);
+    }
+
+    public void updateProfilePicture(MultipartFile file) {
+        User currentUser = getCurrentUser();
+
+        String uniqueFileName = minioService.uploadFile(file, MinioService.AVATARS_BUCKET);
+
+        // Удаляем старую картинку, если она существует
+        if (currentUser.getProfilePictureUrl() != null) {
+            minioService.deleteFile(currentUser.getProfilePictureUrl(), MinioService.AVATARS_BUCKET);
+        }
+
+        currentUser.setProfilePictureUrl(uniqueFileName);
+        userRepository.save(currentUser);
+    }
+
+    public UserProfileInfo getFullProfileInfo() {
+        Tika tika = new Tika();
+        User currentUser = getCurrentUser();
+
+        // Создаем DTO и заполняем его данными из сущности User
+        UserProfileInfo userProfileInfo = UserProfileInfo.builder()
+                .id(currentUser.getId())
+                .username(currentUser.getUsername())
+                .email(currentUser.getEmail())
+                .name(currentUser.getName())
+                .surname(currentUser.getSurname())
+                .middleName(currentUser.getMiddleName())
+                .role(currentUser.getRole())
+                .description(currentUser.getDescription())
+                .createdAt(currentUser.getCreatedAt())
+                .rating(currentUser.getRating())
+                .isEmailVerified(currentUser.getIsEmailVerified())
+                .twoFactorEnabled(currentUser.getTwoFactorEnabled())
+                .isBanned(currentUser.getIsBanned())
+                .banReason(currentUser.getBanReason())
+                .build();
+
+        // Если у пользователя есть картинка профиля, загружаем ее из MinIO
+        if (currentUser.getProfilePictureUrl() != null) {
+            try (InputStream inputStream = minioService.downloadFile(currentUser.getProfilePictureUrl(), MinioService.AVATARS_BUCKET)) {
+                byte[] picture = inputStream.readAllBytes();
+                String pictureMimeType = tika.detect(picture); // Определяем MIME-тип
+                userProfileInfo.setProfilePicture(picture);
+                userProfileInfo.setPictureMimeType(pictureMimeType);
+            } catch (IOException e) {
+                throw new RuntimeException("Ошибка при загрузке картинки профиля", e);
+            }
+        }
+
+        return userProfileInfo;
+    }
+
+    public void changePassword(ChangePasswordRequest changePasswordRequest) {
+        User currentUser = getCurrentUser();
+        PasswordEncoder passwordEncoder = applicationContext.getBean(PasswordEncoder.class);
+        // Проверяем, совпадает ли старый пароль с текущим
+        if (!passwordEncoder.matches(changePasswordRequest.getOldPassword(), currentUser.getPassword())) {
+            throw new RuntimeException("Старый пароль неверный");
+        }
+
+        // Хешируем новый пароль и сохраняем его
+        String newPasswordHash = passwordEncoder.encode(changePasswordRequest.getNewPassword());
+        currentUser.setPassword(newPasswordHash);
+        userRepository.save(currentUser);
+    }
 
 
     public UserHeaderinfo getUserHeaderinfo() {

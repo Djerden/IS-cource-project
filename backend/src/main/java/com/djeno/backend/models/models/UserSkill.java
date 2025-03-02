@@ -7,13 +7,26 @@ import lombok.Data;
 @Entity
 @Table(name = "user_skills")
 public class UserSkill {
-    @Id
+
+    @EmbeddedId
+    private UserSkillId id;
+
     @ManyToOne
+    @MapsId("userId") // Используем имя поля из UserSkillId
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Id
     @ManyToOne
+    @MapsId("skillId") // Используем имя поля из UserSkillId
     @JoinColumn(name = "skill_id")
     private Skill skill;
+
+    // Метод для удобного создания UserSkill
+    public static UserSkill create(User user, Skill skill) {
+        UserSkill userSkill = new UserSkill();
+        userSkill.setId(new UserSkillId(user.getId(), skill.getId()));
+        userSkill.setUser(user);
+        userSkill.setSkill(skill);
+        return userSkill;
+    }
 }

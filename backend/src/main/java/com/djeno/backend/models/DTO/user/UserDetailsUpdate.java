@@ -1,4 +1,4 @@
-package com.djeno.backend.models.DTO;
+package com.djeno.backend.models.DTO.user;
 
 import lombok.Getter;
 import lombok.Setter;

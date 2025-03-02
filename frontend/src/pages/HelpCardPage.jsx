@@ -1,58 +1,75 @@
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-
-// Тестовые данные для карточек
-const testHelpCards = [
-    {
-        id: 1,
-        title: 'How to Create an Account',
-        description: 'Step-by-step guide to creating a new account on our platform.',
-        content: 'To create an account, click on the "Sign Up" button and fill out the required fields.',
-    },
-    {
-        id: 2,
-        title: 'How to Reset Your Password',
-        description: 'Instructions on how to reset your password if you forget it.',
-        content: 'Go to the "Forgot Password" page and follow the instructions to reset your password.',
-    },
-    {
-        id: 3,
-        title: 'How to Contact Support',
-        description: 'Learn how to get in touch with our support team.',
-        content: 'You can contact our support team by emailing support@example.com.',
-    },
-    {
-        id: 4,
-        title: 'How to Update Your Profile',
-        description: 'Guide on updating your profile information.',
-        content: 'Navigate to the "Settings" page to update your profile information.',
-    },
-    {
-        id: 5,
-        title: 'How to Use the Dashboard',
-        description: 'Learn how to navigate and use the dashboard effectively.',
-        content: 'The dashboard provides an overview of your projects and tasks. Explore the different sections to get started.',
-    },
-    {
-        id: 6,
-        title: 'How to Report a Bug',
-        description: 'Steps to report a bug or issue you encounter.',
-        content: 'If you find a bug, please report it by emailing bugs@example.com with a detailed description.',
-    },
-];
 
 export default function HelpCardPage() {
     const { id } = useParams();
-    const card = testHelpCards.find((card) => card.id === parseInt(id));
+    const [article, setArticle] = useState(null);
+    const [error, setError] = useState(null);
 
-    if (!card) {
-        return <div className="p-8 text-center text-red-600">Card not found.</div>;
+    useEffect(() => {
+        fetch(`http://localhost:8080/help/articles/${id}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Received data:", data); // Проверьте данные
+                setArticle(data);
+            })
+            .catch(error => {
+                console.error('Error fetching article:', error);
+                setError(error.message); // Сохраняем ошибку в состоянии
+            });
+    }, [id]);
+
+    // Функция для обработки текста
+    const formatText = (text) => {
+        if (!text) return null;
+
+        try {
+            // Заменяем \\n на \n
+            const unescapedText = text.replace(/\\n/g, '\n');
+            console.log("Unescaped text:", unescapedText); // Проверьте текст после замены
+
+            // Разделяем текст по ** и обрабатываем каждую часть
+            const parts = unescapedText.split(/(\*\*.*?\*\*)/g);
+            return parts.map((part, index) => {
+                if (part.startsWith('**') && part.endsWith('**')) {
+                    // Если часть текста заключена в **, выделяем жирным
+                    const boldText = part.slice(2, -2);
+                    return <strong key={index}>{boldText}</strong>;
+                } else {
+                    // Иначе разбиваем на строки и добавляем <br /> для переносов
+                    const lines = part.split('\n');
+                    return lines.map((line, lineIndex) => (
+                        <React.Fragment key={`${index}-${lineIndex}`}>
+                            {line}
+                            {lineIndex < lines.length - 1 && <br />}
+                        </React.Fragment>
+                    ));
+                }
+            });
+        } catch (error) {
+            console.error('Error formatting text:', error);
+            return <span className="text-red-600">Error formatting text.</span>;
+        }
+    };
+
+    if (error) {
+        return <div className="p-8 text-center text-red-600">Error: {error}</div>;
+    }
+
+    if (!article) {
+        return <div className="p-8 text-center text-red-600">Loading...</div>;
     }
 
     return (
         <div className="p-8">
             <div className="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
-                <h1 className="text-2xl font-bold text-gray-800 mb-4">{card.title}</h1>
-                <p className="text-gray-600">{card.content}</p>
+                <h1 className="text-2xl font-bold text-gray-800 mb-4">{article.title}</h1>
+                <p className="text-gray-600">{formatText(article.body)}</p>
             </div>
         </div>
     );
