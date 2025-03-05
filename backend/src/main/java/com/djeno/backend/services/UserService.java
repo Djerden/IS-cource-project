@@ -7,6 +7,7 @@ import com.djeno.backend.models.DTO.UserHeaderinfo;
 import com.djeno.backend.models.DTO.UserListDTO;
 import com.djeno.backend.models.DTO.user.ChangePasswordRequest;
 import com.djeno.backend.models.DTO.user.UserProfileInfo;
+import com.djeno.backend.models.DTO.user.UserProfileInfoPublic;
 import com.djeno.backend.models.enums.Role;
 import com.djeno.backend.models.mappers.UserListMapper;
 import com.djeno.backend.models.models.Skill;
@@ -44,6 +45,7 @@ public class UserService {
 
     private final MinioService minioService;
     private final ApplicationContext applicationContext;
+    Tika tika = new Tika();
 
     /**
      * Создать новый навык
@@ -156,8 +158,48 @@ public class UserService {
         userRepository.save(currentUser);
     }
 
+    /**
+     * Получение публичной информации о пользователе по username
+     *
+     * @param username имя пользователя
+     * @return информация о пользователе
+     */
+    public UserProfileInfoPublic getPublicProfileInfoByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        // Создаем DTO и заполняем его данными из сущности User
+        UserProfileInfoPublic userProfileInfo = UserProfileInfoPublic.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .name(user.getName())
+                .surname(user.getSurname())
+                .middleName(user.getMiddleName())
+                .role(user.getRole())
+                .description(user.getDescription())
+                .createdAt(user.getCreatedAt())
+                .rating(user.getRating())
+                .isBanned(user.getIsBanned())
+                .banReason(user.getBanReason())
+                .build();
+
+        // Если у пользователя есть картинка профиля, загружаем ее из MinIO
+        if (user.getProfilePictureUrl() != null) {
+            try (InputStream inputStream = minioService.downloadFile(user.getProfilePictureUrl(), MinioService.AVATARS_BUCKET)) {
+                byte[] picture = inputStream.readAllBytes();
+                String pictureMimeType = tika.detect(picture); // Определяем MIME-тип
+                userProfileInfo.setProfilePicture(picture);
+                userProfileInfo.setPictureMimeType(pictureMimeType);
+            } catch (IOException e) {
+                throw new RuntimeException("Ошибка при загрузке картинки профиля", e);
+            }
+        }
+
+        return userProfileInfo;
+    }
+
     public UserProfileInfo getFullProfileInfo() {
-        Tika tika = new Tika();
         User currentUser = getCurrentUser();
 
         // Создаем DTO и заполняем его данными из сущности User

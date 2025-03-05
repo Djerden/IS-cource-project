@@ -24,7 +24,7 @@ public class ProjectApplication {
     @JoinColumn(name = "freelancer_id")
     private User freelancer;
 
-    private LocalDateTime applicationDate;
+    private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -34,6 +34,12 @@ public class ProjectApplication {
 
     private BigDecimal price;
 
-    private Integer estimatedTime;
+    private LocalDateTime deadline;
 
+    @PrePersist
+    public void onPrePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

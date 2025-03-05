@@ -9,7 +9,7 @@ import Help from "./pages/Help.jsx";
 import SignInPage from "./pages/auth/SignInPage.jsx";
 import SignUpPage from "./pages/auth/SignUpPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
-import ProjectPage from "./pages/ProjectPage.jsx";
+import ProjectPage from "./pages/projects/ProjectPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 import ConfirmEmailPage from "./pages/auth/ConfirmEmailPage.jsx";
 import FillUserDetails from "./pages/auth/FillUserDetailsPage.jsx";
@@ -20,6 +20,9 @@ import DisputesListPage from "./pages/admin-pages/DisputesListPage.jsx";
 import HelpCardPage from "./pages/HelpCardPage.jsx";
 import BlogCardPage from "./pages/BlogCardPage.jsx";
 import CreateArticleForBlogPage from "./pages/CreateArticleForBlogPage.jsx";
+import CreateProjectPage from "./pages/projects/CreateProjectPage.jsx";
+import ChatPage from "./pages/ChatPage.jsx";
+import CreateProjectApplicationPage from "./pages/projects/CreateProjectApplicationPage.jsx";
 
 function App() {
 
@@ -35,6 +38,11 @@ function App() {
                 },
                 {
                     path: '/orders',
+                    element:
+                        <Orders />
+                },
+                {
+                    path: '/orders/:categoryId',
                     element:
                         <Orders />
                 },
@@ -104,9 +112,21 @@ function App() {
                     element: <ProjectPage />
                 },
                 {
+                    path: '/project/create',
+                    element: <CreateProjectPage />
+                },
+                {
+                    path: '/project/:projectId/create-application',
+                    element: <CreateProjectApplicationPage />,
+                },
+                {
                     path: '/settings',
                     element: <SettingsPage />
-                }
+                },
+                {
+                    path: '/chat/:chatId',
+                    element: <ChatPage />
+                },
 
             ]
         },

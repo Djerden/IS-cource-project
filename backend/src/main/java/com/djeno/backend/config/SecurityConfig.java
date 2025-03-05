@@ -54,12 +54,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/auth/send-email-verification-code").authenticated()
                         .requestMatchers(HttpMethod.POST, "/auth/verify-email").authenticated()
 
+
                         .requestMatchers("/user/**").authenticated()
+                        .requestMatchers("/info/**").authenticated()
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "MAIN_ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/admin/grant-admin/**", "/admin/revoke-admin/**", "/admin/grant-main-admin/**").hasRole("MAIN_ADMIN")
 
                         .requestMatchers("/help/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/help/articles").hasAnyRole("ADMIN", "MAIN_ADMIN")
+                        .requestMatchers("/category/**").permitAll()
+                        .requestMatchers("/project/**").permitAll()
 
                         .requestMatchers("/blog/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/blog/article").authenticated()

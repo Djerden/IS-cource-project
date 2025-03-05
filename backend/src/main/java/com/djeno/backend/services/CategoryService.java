@@ -5,11 +5,28 @@ import com.djeno.backend.repositories.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @RequiredArgsConstructor
 @Service
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+
+    // Новый метод для получения всех категорий
+    public List<Category> getAllCategories() {
+        return categoryRepository.findAllCategories();
+    }
+
+    // Метод для получения всех категорий первого уровня
+    public List<Category> getCategoriesByParentCategoryNull() {
+        return categoryRepository.findByParentCategoryIsNull();
+    }
+
+    // Метод для получения подкатегорий второго уровня по родительской категории
+    public List<Category> getSubCategoriesByParentId(Long parentId) {
+        return categoryRepository.findByParentCategoryId(parentId);
+    }
 
     /**
      * Метод для создания категории

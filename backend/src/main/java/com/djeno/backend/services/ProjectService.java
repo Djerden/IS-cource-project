@@ -1,6 +1,7 @@
 package com.djeno.backend.services;
 
 import com.djeno.backend.models.DTO.ProjectCreate;
+import com.djeno.backend.models.DTO.project.ProjectDTO;
 import com.djeno.backend.models.enums.ProjectStatus;
 import com.djeno.backend.models.enums.Role;
 import com.djeno.backend.models.models.Category;
@@ -10,10 +11,17 @@ import com.djeno.backend.repositories.CategoryRepository;
 import com.djeno.backend.repositories.ProjectRepository;
 import com.djeno.backend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -25,6 +33,102 @@ public class ProjectService {
 
     private final UserService userService;
 
+    /**
+     * Метод для получения информации о проекте
+     *
+     * @param projectId ID проекта
+     * @return Информация о проекте
+     */
+    public ProjectDTO getProjectById(Long projectId) {
+        Project project =  projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("Проект не найден"));
+        return convertToDTO(project);
+    }
+
+    /**
+     * Метод для получения проектов с фильтрами, сортировкой и пагинацией
+     *
+     * @param categoryId    ID категории (опционально)
+     * @param minBudget     Минимальный бюджет (опционально)
+     * @param maxBudget     Максимальный бюджет (опционально)
+     * @param deadlineStart Начальная дата дедлайна (опционально)
+     * @param deadlineEnd   Конечная дата дедлайна (опционально)
+     * @param sortBy        Поле для сортировки (например, "price" или "createdAt")
+     * @param sortDirection Направление сортировки ("asc" или "desc")
+     * @param page          Номер страницы (начиная с 0)
+     * @param size          Количество элементов на странице
+     * @return Страница с проектами
+     */
+    public Page<ProjectDTO> getProjects(
+            Long categoryId,
+            BigDecimal minBudget,
+            BigDecimal maxBudget,
+            LocalDateTime deadlineStart,
+            LocalDateTime deadlineEnd,
+            String sortBy,
+            String sortDirection,
+            int page,
+            int size
+    ) {
+        // Создаем спецификацию для фильтрации
+        Specification<Project> spec = Specification.where(null);
+
+        if (categoryId != null) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("category").get("id"), categoryId));
+        }
+
+        if (minBudget != null) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.greaterThanOrEqualTo(root.get("budget"), minBudget));
+        }
+
+        if (maxBudget != null) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.lessThanOrEqualTo(root.get("budget"), maxBudget));
+        }
+
+        if (deadlineStart != null && deadlineEnd != null) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.between(root.get("deadline"), deadlineStart, deadlineEnd));
+        }
+
+        // Создаем сортировку
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
+
+        // Получаем страницу с проектами
+        Page<Project> projects = projectRepository.findAll(spec, PageRequest.of(page, size, sort));
+
+        // Преобразуем сущности Project в DTO
+        List<ProjectDTO> projectDTOs = projects.getContent().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+
+        // Возвращаем страницу с DTO
+        return new PageImpl<>(projectDTOs, projects.getPageable(), projects.getTotalElements());
+    }
+
+    /**
+     * Метод для преобразования сущности Project в DTO
+     *
+     * @param project Сущность Project
+     * @return DTO
+     */
+    private ProjectDTO convertToDTO(Project project) {
+        ProjectDTO dto = new ProjectDTO();
+        dto.setId(project.getId());
+        dto.setCategoryName(project.getCategory() != null ? project.getCategory().getName() : null);
+        dto.setTitle(project.getTitle());
+        dto.setDescription(project.getDescription());
+        dto.setBudget(project.getBudget());
+        dto.setDeadline(project.getDeadline());
+        dto.setStatus(project.getStatus());
+        dto.setFreelancerUsername(project.getFreelancer() != null ? project.getFreelancer().getUsername() : null);
+        dto.setOwnerUsername(project.getOwner() != null ? project.getOwner().getUsername() : null);
+        dto.setBalance(project.getBalance());
+        dto.setCreatedAt(project.getCreatedAt());
+        return dto;
+    }
 
     /**
      * Метод для создания проекта
@@ -79,16 +183,6 @@ public class ProjectService {
 
         project.setDeadline(newDeadline);
         projectRepository.save(project);
-    }
-    /**
-     * Метод для получения информации о проекте
-     *
-     * @param projectId ID проекта
-     * @return Информация о проекте
-     */
-    public Project getProjectById(Long projectId) {
-        return projectRepository.findById(projectId)
-                .orElseThrow(() -> new RuntimeException("Проект не найден"));
     }
 
     /**

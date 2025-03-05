@@ -1,43 +1,3 @@
-
--- 1 уровень категорий
-INSERT INTO categories (name, parent_category_id) VALUES
-('Копирайтинг', NULL),
-('Интернет-магазины', NULL),
-('Zero-coding', NULL),
-('Webflow', NULL),
-('WordPress', NULL),
-('Vue', NULL),
-('Дизайн сайтов', NULL),
-('Доработка сайтов', NULL),
-('Wap/PDA-сайты', NULL),
-('Сайт «под ключ»', NULL),
-('CMS (системы управления)', NULL),
-('Продвижение сайта', NULL),
-('1C Битрикс', NULL),
-('Проектирование', NULL),
-('SEO-оптимизация', NULL),
-('Аудит сайта', NULL),
-('Тильда', NULL),
-('React', NULL),
-('Менеджер проектов', NULL),
-('Юзабилити-анализ', NULL),
-('Флеш-сайты', NULL),
-('QA (тестирование)', NULL),
-('Лендинги', NULL),
-('Laravel', NULL),
-('OpenCart', NULL),
-('MODx', NULL),
-('Joomla', NULL),
-('Magento', NULL),
-('Node', NULL),
-('Интеграция по API', NULL),
-('Создание MVP', NULL),
-('Yii', NULL),
-('Редизайн сайтов', NULL),
-('Пользовательские с…', NULL),
-('Сайты', NULL);
-
-
 INSERT INTO help_articles (title, short_description, body)
 VALUES
     ('Новичкам фрилансерам',
@@ -91,3 +51,78 @@ INSERT INTO skills (name) VALUES
 ('MongoDB'),
 ('Elasticsearch'),
 ('Kubernetes');
+
+
+-- 1 уровень категорий
+INSERT INTO categories (name, parent_category_id) VALUES
+('Разработка ПО', NULL),
+('Графический дизайн', NULL),
+('Маркетинг', NULL),
+('Переводы', NULL),
+('Копирайтинг', NULL),
+('Администрирование', NULL),
+('Финансовые услуги', NULL),
+('Юридические услуги', NULL),
+('Образование', NULL),
+('Тестирование', NULL);
+
+-- 2 уровень категорий (подкатегории для каждой основной категории)
+-- Разработка ПО
+INSERT INTO categories (name, parent_category_id) VALUES
+('Веб-разработка', 1),
+('Мобильные приложения', 1),
+('Разработка игр', 1);
+
+-- Графический дизайн
+INSERT INTO categories (name, parent_category_id) VALUES
+('Логотипы и брендинг', 2),
+('UI/UX дизайн', 2),
+('3D моделирование', 2);
+
+-- Маркетинг
+INSERT INTO categories (name, parent_category_id) VALUES
+('SEO-оптимизация', 3),
+('SMM', 3),
+('Контекстная реклама', 3);
+
+-- Переводы
+INSERT INTO categories (name, parent_category_id) VALUES
+('Перевод текстов', 4),
+('Синхронный перевод', 4),
+('Локализация приложений', 4);
+
+-- Копирайтинг
+INSERT INTO categories (name, parent_category_id) VALUES
+('Тексты для сайтов', 5),
+('Рекламные тексты', 5),
+('Написание статей', 5);
+
+-- Администрирование
+INSERT INTO categories (name, parent_category_id) VALUES
+('Системное администрирование', 6),
+('Сетевое администрирование', 6),
+('Администрирование баз данных', 6);
+
+-- Финансовые услуги
+INSERT INTO categories (name, parent_category_id) VALUES
+('Бухгалтерия', 7),
+('Финансовый консалтинг', 7),
+('Налоги и отчетность', 7);
+
+-- Юридические услуги
+INSERT INTO categories (name, parent_category_id) VALUES
+('Договоры и контракты', 8),
+('Судебные разбирательства', 8),
+('Нотариальные услуги', 8);
+
+-- Образование
+INSERT INTO categories (name, parent_category_id) VALUES
+('Онлайн-курсы', 9),
+('Репетиторство', 9),
+('Образовательные программы', 9);
+
+-- Тестирование
+INSERT INTO categories (name, parent_category_id) VALUES
+('Автоматизация тестирования', 10),
+('Функциональное тестирование', 10),
+('Тестирование безопасности', 10);

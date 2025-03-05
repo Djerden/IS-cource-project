@@ -24,6 +24,8 @@ public class UserController {
 
     private final UserService userService;
 
+
+
     // Метод, который вернет необходимые данные для хедера: username, аватар профиля
     @GetMapping("/get-user-header-info")
     public ResponseEntity<UserHeaderinfo> getUserHeaderInfo() {

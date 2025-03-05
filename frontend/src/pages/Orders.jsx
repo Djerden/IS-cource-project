@@ -1,79 +1,202 @@
-import {useEffect, useState} from "react";
-import OrderCard from "../components/orders/OrderCard.jsx";
+import { useEffect, useState } from "react";
+import { NavLink, useParams, useNavigate } from "react-router-dom";
+import { Row, Col, Card, Button, DatePicker, Slider, Select, Spin, Pagination } from "antd";
+import ProjectCard from "../components/orders/ProjectCard.jsx";
+import {jwtDecode} from "jwt-decode"; // Импортируем новый компонент
+
+const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 export default function Orders() {
+
+    const token = localStorage.getItem('jwt');
+    const decodedToken = jwtDecode(token); // Декодируем токен
+    const userRole = decodedToken?.role; // Получаем роль пользователя
+    // Проверяем, авторизован ли пользователь и не является ли он фрилансером
+    const shouldShowCreateButton = token && userRole !== "ROLE_FREELANCER";
+
     const [categories, setCategories] = useState([]);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { categoryId } = useParams(); // Получаем categoryId из URL
+    const navigate = useNavigate(); // Хук для навигации
+
+    // Состояния для фильтров и сортировки
+    const [minBudget, setMinBudget] = useState(null);
+    const [maxBudget, setMaxBudget] = useState(null);
+    const [deadlineRange, setDeadlineRange] = useState([]);
+    const [sortBy, setSortBy] = useState("createdAt");
+    const [sortDirection, setSortDirection] = useState("desc");
+
+    // Состояния для пагинации
+    const [currentPage, setCurrentPage] = useState(1); // Текущая страница
+    const [pageSize, setPageSize] = useState(10); // Количество элементов на странице
+    const [totalProjects, setTotalProjects] = useState(0); // Общее количество проектов
 
     useEffect(() => {
-        // Запрос на получение категорий
-        fetchCategories()
-            .then(data => setCategories(data))
-            .catch(err => console.error('Error fetching categories:', err));
+        // Загружаем категории или подкатегории
+        if (categoryId) {
+            fetchSubCategories(categoryId);
+        } else {
+            fetchCategories();
+        }
 
-        // Запрос на получение заказов
-        fetchOrders()
-            .then(data => setOrders(data))
-            .catch(err => console.error('Error fetching orders:', err))
-            .finally(() => setLoading(false));
-    }, []);
+        // Загружаем заказы с фильтрами
+        fetchOrders();
+    }, [categoryId, minBudget, maxBudget, deadlineRange, sortBy, sortDirection, currentPage, pageSize]);
 
-    // api.js
     const fetchCategories = async () => {
-        const response = await fetch('/api/categories');
+        const response = await fetch('http://localhost:8080/category');
         if (!response.ok) {
             throw new Error('Failed to fetch categories');
         }
-        return response.json();
+        const data = await response.json();
+        setCategories(data);
+    };
+
+    const fetchSubCategories = async (categoryId) => {
+        const response = await fetch(`http://localhost:8080/category?parentId=${categoryId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch subcategories');
+        }
+        const data = await response.json();
+        setCategories(data); // Подкатегории заменяют категории
     };
 
     const fetchOrders = async () => {
-        const response = await fetch('/api/orders');
-        if (!response.ok) {
-            throw new Error('Failed to fetch orders');
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                categoryId: categoryId || "",
+                minBudget: minBudget || "",
+                maxBudget: maxBudget || "",
+                deadlineStart: deadlineRange[0] ? deadlineRange[0].toISOString() : "",
+                deadlineEnd: deadlineRange[1] ? deadlineRange[1].toISOString() : "",
+                sortBy,
+                sortDirection,
+                page: currentPage - 1, // Страницы на сервере начинаются с 0
+                size: pageSize,
+            });
+
+            const response = await fetch(`http://localhost:8080/project/filter?${params.toString()}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch orders');
+            }
+            const data = await response.json();
+            setOrders(data.content); // Устанавливаем заказы
+            setTotalProjects(data.totalElements); // Устанавливаем общее количество проектов
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+        } finally {
+            setLoading(false);
         }
-        return response.json();
     };
 
+    const handleCategoryClick = (categoryId) => {
+        navigate(`/orders/${categoryId}`);
+    };
 
+    // Обработчик изменения страницы
+    const handlePageChange = (page, pageSize) => {
+        setCurrentPage(page);
+        setPageSize(pageSize);
+    };
 
     return (
-        <div className="container mx-auto p-4 flex">
-            <div className="w-3/4">
-                <h1 className="text-3xl font-semibold mb-6">Все заказы</h1>
-
-                {/* Блок с категориями */}
-                <div className="mb-6">
-                    <h2 className="text-2xl font-medium mb-3">Категории</h2>
-                    <div className="flex space-x-4">
-                        {categories.map((category) => (
-                            <button key={category.id} className="text-white bg-[#8EE4AF] p-2 rounded hover:bg-[#6dbb86]">
-                                {category.name}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Список заказов */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {loading ? (
-                        <div>Загрузка...</div>
-                    ) : (
-                        orders.map((order) => (
-                            <OrderCard key={order.id} order={order} />
-                        ))
+        <div className="container mx-auto p-4">
+            <Row gutter={16}>
+                <Col span={18}>
+                    <h1 className="text-3xl font-semibold mb-6">{categoryId ? 'Заказы из категории' : 'Все заказы'}</h1>
+                    {shouldShowCreateButton && (
+                        <NavLink to="/project/create">
+                            <Button type="primary">Создать заказ</Button>
+                        </NavLink>
                     )}
-                </div>
-            </div>
 
-            {/* Блок с сортировками и фильтрами (пока пустой) */}
-            <div className="w-1/4 pl-8">
-                <div className="bg-gray-800 text-white p-4 rounded">
-                    <h3 className="text-xl font-semibold">Сортировка и фильтры</h3>
-                    {/* Здесь позже будут фильтры и сортировки */}
-                </div>
-            </div>
+                    {/* Блок с категориями или подкатегориями */}
+                    <Card title={categoryId ? 'Подкатегории' : 'Категории'} className="mb-6">
+                        <Row gutter={[16, 16]}>
+                            {categories.map((category) => (
+                                <Col span={4.8} key={category.id}> {/* 5 категорий в ряд */}
+                                    <Button block onClick={() => handleCategoryClick(category.id)}>
+                                        {category.name}
+                                    </Button>
+                                </Col>
+                            ))}
+                        </Row>
+                    </Card>
+
+                    {/* Список заказов */}
+                    <Spin spinning={loading}>
+                        <Row gutter={[16, 16]}>
+                            {orders.map((order) => (
+                                <Col span={24} key={order.id}>
+                                    <ProjectCard project={order} /> {/* Используем новый компонент */}
+                                </Col>
+                            ))}
+                        </Row>
+                    </Spin>
+
+                    {/* Пагинация */}
+                    <div className="mt-6 flex justify-center">
+                        <Pagination
+                            current={currentPage}
+                            pageSize={pageSize}
+                            total={totalProjects}
+                            onChange={handlePageChange}
+                            showSizeChanger
+                            onShowSizeChange={(current, size) => setPageSize(size)}
+                        />
+                    </div>
+                </Col>
+
+                {/* Блок с фильтрами и сортировкой */}
+                <Col span={6}>
+                    <Card title="Фильтры и сортировка">
+                        <Select
+                            placeholder="Сортировать по"
+                            style={{ width: '100%' }}
+                            className="mb-4"
+                            value={sortBy}
+                            onChange={(value) => setSortBy(value)}
+                        >
+                            <Option value="budget">Бюджет</Option>
+                            <Option value="createdAt">Дата создания</Option>
+                        </Select>
+
+                        <Select
+                            placeholder="Направление сортировки"
+                            style={{ width: '100%' }}
+                            className="mb-4"
+                            value={sortDirection}
+                            onChange={(value) => setSortDirection(value)}
+                        >
+                            <Option value="asc">По возрастанию</Option>
+                            <Option value="desc">По убыванию</Option>
+                        </Select>
+
+                        <RangePicker
+                            style={{ width: '100%' }}
+                            className="mb-4"
+                            onChange={(dates) => setDeadlineRange(dates)}
+                        />
+
+                        <Slider
+                            range
+                            defaultValue={[0, 100]}
+                            className="mb-4"
+                            onChange={(values) => {
+                                setMinBudget(values[0]);
+                                setMaxBudget(values[1]);
+                            }}
+                        />
+
+                        <Button type="primary" block onClick={fetchOrders}>
+                            Применить фильтры
+                        </Button>
+                    </Card>
+                </Col>
+            </Row>
         </div>
     );
 }
