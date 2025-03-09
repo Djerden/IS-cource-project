@@ -4,6 +4,7 @@ import com.djeno.backend.models.DTO.SimpleMessage;
 import com.djeno.backend.models.DTO.blog.BlogArticleCreateDTO;
 import com.djeno.backend.models.DTO.blog.BlogArticleDetailDTO;
 import com.djeno.backend.models.DTO.blog.BlogArticleSummaryDTO;
+import com.djeno.backend.models.DTO.blog.UpdateArticleRequest;
 import com.djeno.backend.models.models.BlogArticle;
 import com.djeno.backend.models.models.User;
 import com.djeno.backend.services.BlogService;
@@ -63,10 +64,8 @@ public class BlogController {
     @PutMapping("/articles/{id}")
     public ResponseEntity<SimpleMessage> updateArticle(
             @PathVariable Long id,
-            @RequestParam(required = false) String title,
-            @RequestParam(required = false) String description,
-            @RequestParam(required = false) String body) {
-        blogService.updateArticle(id, title, description, body);
+            @RequestBody UpdateArticleRequest request) { // Принимаем данные из тела запроса
+        blogService.updateArticle(id, request.getTitle(), request.getDescription(), request.getBody());
         return ResponseEntity.ok(new SimpleMessage("Статья успешно обновлена"));
     }
 }

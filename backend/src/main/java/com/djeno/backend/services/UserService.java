@@ -2,27 +2,19 @@ package com.djeno.backend.services;
 
 import com.djeno.backend.exceptions.EmailAlreadyExistsException;
 import com.djeno.backend.exceptions.UsernameAlreadyExistsException;
-import com.djeno.backend.models.DTO.user.UserDetailsUpdate;
-import com.djeno.backend.models.DTO.UserHeaderinfo;
-import com.djeno.backend.models.DTO.UserListDTO;
-import com.djeno.backend.models.DTO.user.ChangePasswordRequest;
-import com.djeno.backend.models.DTO.user.UserProfileInfo;
-import com.djeno.backend.models.DTO.user.UserProfileInfoPublic;
+import com.djeno.backend.models.DTO.user.*;
 import com.djeno.backend.models.enums.Role;
-import com.djeno.backend.models.mappers.UserListMapper;
 import com.djeno.backend.models.models.Skill;
 import com.djeno.backend.models.models.User;
 import com.djeno.backend.models.models.UserSkill;
 import com.djeno.backend.repositories.SkillRepository;
 import com.djeno.backend.repositories.UserRepository;
 import com.djeno.backend.repositories.UserSkillRepository;
-import com.djeno.backend.repositories.specification.UserSpecification;
 import lombok.RequiredArgsConstructor;
 import org.apache.tika.Tika;
 import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -32,6 +24,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,6 +40,65 @@ public class UserService {
     private final MinioService minioService;
     private final ApplicationContext applicationContext;
     Tika tika = new Tika();
+
+
+    // Получение баланса
+    public BigDecimal getBalance() {
+        return getCurrentUser().getBalance();
+    }
+
+    // Пополнение баланса
+    public BigDecimal deposit(BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than 0");
+        }
+
+        User user = getCurrentUser();
+        user.setBalance(user.getBalance().add(amount));
+        userRepository.save(user);
+        return user.getBalance();
+    }
+
+    // Вывод денег с баланса
+    public BigDecimal withdraw(BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than 0");
+        }
+
+        User user = getCurrentUser();
+        if (user.getBalance().compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Insufficient funds");
+        }
+
+        user.setBalance(user.getBalance().subtract(amount));
+        userRepository.save(user);
+        return user.getBalance();
+    }
+
+    public UserHeaderinfo getUserHeaderinfo() {
+        User currentUser = getCurrentUser();
+        UserHeaderinfo userHeaderinfo = new UserHeaderinfo();
+        userHeaderinfo.setUsername(currentUser.getUsername());
+        userHeaderinfo.setRole(currentUser.getRole().toString());
+        userHeaderinfo.setBalance(currentUser.getBalance());
+
+        // Загрузка картинки, если она есть
+        if (currentUser.getProfilePictureUrl() != null && !currentUser.getProfilePictureUrl().isEmpty()) {
+            try {
+                InputStream inputStream = minioService.downloadFile(currentUser.getProfilePictureUrl(), MinioService.AVATARS_BUCKET);
+                byte[] profilePicture = inputStream.readAllBytes();
+                // Определение MIME-типа
+                String mimeType = tika.detect(profilePicture);
+                userHeaderinfo.setProfilePicture(profilePicture);
+                userHeaderinfo.setPictureMimeType(mimeType);
+            } catch (IOException e) {
+                // Обработка ошибки, если не удалось загрузить картинку
+                e.printStackTrace();
+            }
+        }
+
+        return userHeaderinfo;
+    }
 
     /**
      * Создать новый навык
@@ -168,6 +221,14 @@ public class UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
+        List<Skill> skills = new ArrayList<>();
+        if (user.getRole() == Role.ROLE_FREELANCER) {
+            // Получаем навыки пользователя
+             skills = userSkillRepository.findByUser(user)
+                    .stream()
+                    .map(UserSkill::getSkill)
+                    .collect(Collectors.toList());
+        }
         // Создаем DTO и заполняем его данными из сущности User
         UserProfileInfoPublic userProfileInfo = UserProfileInfoPublic.builder()
                 .id(user.getId())
@@ -182,6 +243,7 @@ public class UserService {
                 .rating(user.getRating())
                 .isBanned(user.getIsBanned())
                 .banReason(user.getBanReason())
+                .skills(skills)
                 .build();
 
         // Если у пользователя есть картинка профиля, загружаем ее из MinIO
@@ -249,15 +311,6 @@ public class UserService {
         userRepository.save(currentUser);
     }
 
-
-    public UserHeaderinfo getUserHeaderinfo() {
-        User currentUser = getCurrentUser();
-        UserHeaderinfo userHeaderinfo = new UserHeaderinfo();
-        userHeaderinfo.setUsername(currentUser.getUsername());
-        userHeaderinfo.setRole(currentUser.getRole().toString());
-        return userHeaderinfo;
-    }
-
     /**
      * Метод для выдачи бана пользователю
      *
@@ -312,69 +365,6 @@ public class UserService {
         user.setBanReason(null);
 
         return userRepository.save(user);
-    }
-
-
-
-    /**
-     *  Метод, который возвращает список пользователей по заданным параметрам фильтрации и пагинации
-     *  По умолчанию предназначен для получения списка администраторов
-     *
-     * @param roles
-     * @param username
-     * @param email
-     * @param page
-     * @param size
-     * @param sortBy
-     * @param ascending
-     * @return
-     */
-    public Page<UserListDTO> getUsersWithFilters(List<Role> roles, String username, String email, int page, int size, String sortBy, boolean ascending) {
-        Specification<User> spec = Specification.where(null);
-
-        if (roles != null && !roles.isEmpty()) {
-            spec = spec.and((root, query, criteriaBuilder) -> root.get("role").in(roles));
-        }
-
-        spec = spec.and(UserSpecification.hasUsernameLike(username));
-        spec = spec.and(UserSpecification.hasEmailLike(email));
-
-        Sort sort = ascending ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
-        PageRequest pageRequest = PageRequest.of(page, size, sort);
-
-        Page<User> userPage = userRepository.findAll(spec, pageRequest);
-
-        return userPage.map(UserListMapper::toDTO);
-    }
-
-    /**
-     *  Метод, который возвращает список забанненных пользователей
-     *
-     * @param roles
-     * @param username
-     * @param email
-     * @param page
-     * @param size
-     * @param sortBy
-     * @param ascending
-     * @return
-     */
-    public Page<UserListDTO> getBannedUsersWithFilters(List<Role> roles, String username, String email, int page, int size, String sortBy, boolean ascending) {
-        Specification<User> spec = Specification.where(UserSpecification.hasIsBannedTrue());
-
-        if (roles != null && !roles.isEmpty()) {
-            spec = spec.and((root, query, criteriaBuilder) -> root.get("role").in(roles));
-        }
-
-        spec = spec.and(UserSpecification.hasUsernameLike(username));
-        spec = spec.and(UserSpecification.hasEmailLike(email));
-
-        Sort sort = ascending ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
-        PageRequest pageRequest = PageRequest.of(page, size, sort);
-
-        Page<User> userPage = userRepository.findAll(spec, pageRequest);
-
-        return userPage.map(UserListMapper::toDTO);
     }
 
     /**

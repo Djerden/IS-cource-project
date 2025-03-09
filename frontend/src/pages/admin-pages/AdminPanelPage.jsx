@@ -1,17 +1,56 @@
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
 export default function AdminPanelPage() {
-    // Пример данных (замените на реальные данные из API)
-    const stats = {
-        customers: 120,
-        freelancers: 85,
-        bannedUsers: 10,
-        totalUsers: 215,
-        completedOrders: 350,
-        unassignedOrders: 45,
-        inProgressOrders: 60,
-        totalOrders: 455,
-    };
+    const [stats, setStats] = useState({
+        customers: 0,
+        freelancers: 0,
+        bannedUsers: 0,
+        totalUsers: 0,
+        completedOrders: 0,
+        unassignedOrders: 0,
+        inProgressOrders: 0,
+        totalOrders: 0,
+    });
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const token = localStorage.getItem('jwt');
+
+    // Загрузка статистики
+    useEffect(() => {
+        const fetchStatistics = async () => {
+            try {
+                const response = await fetch('http://localhost:8080/admin/statistics', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch statistics');
+                }
+
+                const data = await response.json();
+                setStats(data);
+            } catch (error) {
+                setError(error.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStatistics();
+    }, [token]);
+
+    if (loading) {
+        return <div>Загрузка...</div>;
+    }
+
+    if (error) {
+        return <div>Ошибка: {error}</div>;
+    }
 
     return (
         <div className="p-8">
@@ -48,16 +87,16 @@ export default function AdminPanelPage() {
                     <h2 className="text-xl font-semibold text-gray-700 mb-4">Orders Overview</h2>
                     <div className="space-y-3">
                         <div className="flex justify-between">
-                            <span className="text-gray-600">Completed Orders:</span>
-                            <span className="font-medium">{stats.completedOrders}</span>
-                        </div>
-                        <div className="flex justify-between">
                             <span className="text-gray-600">Unassigned Orders:</span>
                             <span className="font-medium">{stats.unassignedOrders}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-gray-600">In Progress Orders:</span>
                             <span className="font-medium">{stats.inProgressOrders}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">Completed Orders:</span>
+                            <span className="font-medium">{stats.completedOrders}</span>
                         </div>
                         <div className="flex justify-between border-t pt-3">
                             <span className="text-gray-600 font-semibold">Total Orders:</span>

@@ -54,16 +54,24 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/auth/send-email-verification-code").authenticated()
                         .requestMatchers(HttpMethod.POST, "/auth/verify-email").authenticated()
 
-
+                        .requestMatchers("/info/user/**").permitAll()
+                        .requestMatchers("/user/freelancers").permitAll()
                         .requestMatchers("/user/**").authenticated()
                         .requestMatchers("/info/**").authenticated()
+
+                        .requestMatchers("/admin/statistics").permitAll()
+                        .requestMatchers("/admin/admins").permitAll()
+                        .requestMatchers("/admin/regular-users").permitAll()
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "MAIN_ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/admin/grant-admin/**", "/admin/revoke-admin/**", "/admin/grant-main-admin/**").hasRole("MAIN_ADMIN")
+
 
                         .requestMatchers("/help/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/help/articles").hasAnyRole("ADMIN", "MAIN_ADMIN")
                         .requestMatchers("/category/**").permitAll()
                         .requestMatchers("/project/**").permitAll()
+                        .requestMatchers("/project/user/**").permitAll()
+                        .requestMatchers("/project-application").authenticated()
 
                         .requestMatchers("/blog/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/blog/article").authenticated()

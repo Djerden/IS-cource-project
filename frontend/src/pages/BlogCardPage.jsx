@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import {jwtDecode} from "jwt-decode";
 
 export default function BlogCardPage() {
     const { id } = useParams();
@@ -9,27 +10,32 @@ export default function BlogCardPage() {
     const [editedDescription, setEditedDescription] = useState('');
     const [editedContent, setEditedContent] = useState('');
 
-    useEffect(() => {
-        const fetchArticle = async () => {
-            try {
-                const response = await fetch(`http://localhost:8080/blog/articles/${id}`);
-                const data = await response.json();
-                console.log("Полученные данные:", data); // Логирование данных
-                setArticle(data);
-                setEditedTitle(data.title);
-                setEditedDescription(data.description);
-                setEditedContent(data.body);
-            } catch (error) {
-                console.error('Ошибка при загрузке статьи:', error);
-            }
-        };
+    const token = localStorage.getItem('jwt');
+    const decodedToken = token ? jwtDecode(token) : null; // Декодируем токен
+    const currentUserRole = decodedToken?.role; // Роль текущего пользователя
 
+    const fetchArticle = async () => {
+        try {
+            const response = await fetch(`http://localhost:8080/blog/articles/${id}`);
+            const data = await response.json();
+            console.log("Полученные данные:", data); // Логирование данных
+            setArticle(data);
+            setEditedTitle(data.title);
+            setEditedDescription(data.description);
+            setEditedContent(data.body);
+        } catch (error) {
+            console.error('Ошибка при загрузке статьи:', error);
+        }
+    };
+
+    useEffect(() => {
         fetchArticle();
     }, [id]);
 
     // Обработчик сохранения изменений
     const handleSave = async () => {
         try {
+            console.log(editedContent)
             const response = await fetch(`http://localhost:8080/blog/articles/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -43,11 +49,10 @@ export default function BlogCardPage() {
             if (!response.ok) {
                 throw new Error('Ошибка при сохранении статьи');
             }
-
+            console.log(response);
             // Обновляем статью после успешного сохранения
-            const updatedArticle = await response.json();
-            setArticle(updatedArticle);
             setIsEditing(false);
+            fetchArticle();
         } catch (error) {
             console.error('Ошибка при сохранении статьи:', error);
         }
@@ -103,12 +108,14 @@ export default function BlogCardPage() {
                 )}
 
                 {/* Кнопка редактирования/сохранения */}
-                <button
-                    onClick={isEditing ? handleSave : () => setIsEditing(true)}
-                    className="mt-6 px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
-                >
-                    {isEditing ? 'Сохранить' : 'Редактировать'}
-                </button>
+                {(currentUserRole === 'ROLE_ADMIN' ||  currentUserRole === 'ROLE_MAIN_ADMIN') && (
+                    <button
+                        onClick={isEditing ? handleSave : () => setIsEditing(true)}
+                        className="mt-6 px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
+                    >
+                        {isEditing ? 'Сохранить' : 'Редактировать'}
+                    </button>
+                )}
             </div>
         </div>
     );

@@ -1,6 +1,7 @@
 package com.djeno.backend.services;
 
 import com.djeno.backend.models.DTO.project.ProjectApplicationDTO;
+import com.djeno.backend.models.DTO.project.ProjectApplicationRequest;
 import com.djeno.backend.models.enums.ApplicationStatus;
 import com.djeno.backend.models.models.Project;
 import com.djeno.backend.models.models.ProjectApplication;
@@ -22,8 +23,8 @@ public class ProjectApplicationService {
     private final ProjectRepository projectRepository;
     private final UserService userService;
 
-    public ProjectApplicationDTO createApplication(ProjectApplicationDTO applicationDTO) {
-        Project project = projectRepository.findById(applicationDTO.getProjectId())
+    public void createApplication(ProjectApplicationRequest request) {
+        Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new RuntimeException("Проект не найден"));
 
         User freelancer = userService.getCurrentUser();
@@ -32,13 +33,11 @@ public class ProjectApplicationService {
         application.setProject(project);
         application.setFreelancer(freelancer);
         application.setStatus(ApplicationStatus.PENDING);
-        application.setMessage(applicationDTO.getMessage());
-        application.setPrice(applicationDTO.getPrice());
-        application.setDeadline(applicationDTO.getDeadline());
+        application.setMessage(request.getMessage());
+        application.setPrice(request.getPrice());
+        application.setDeadline(request.getDeadline());
 
         ProjectApplication savedApplication = projectApplicationRepository.save(application);
-
-        return mapToDTO(savedApplication);
     }
 
     public List<ProjectApplicationDTO> getApplicationsByProjectId(Long projectId) {

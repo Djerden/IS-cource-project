@@ -1,21 +1,25 @@
 package com.djeno.backend.controllers;
 
 import com.djeno.backend.models.DTO.*;
+import com.djeno.backend.models.DTO.user.UserForList;
 import com.djeno.backend.models.enums.Role;
 import com.djeno.backend.models.models.Category;
 import com.djeno.backend.models.models.Skill;
 import com.djeno.backend.models.models.User;
-import com.djeno.backend.services.CategoryService;
-import com.djeno.backend.services.SkillService;
-import com.djeno.backend.services.UserService;
+import com.djeno.backend.services.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -26,6 +30,96 @@ public class AdminController {
     private final CategoryService categoryService;
     private final SkillService skillService;
     private final UserService userService;
+    private final AdminService adminService;
+
+    @GetMapping("/banned-users")
+    public ResponseEntity<Page<UserForList>> getAllBannedUsers(
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String email,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
+
+        // Создаем объект Pageable для пагинации и сортировки
+        Pageable pageable = PageRequest.of(page, size, parseSort(sort));
+
+        // Получаем страницу забаненных пользователей
+        Page<UserForList> bannedUsers = adminService.getAllBannedUsers(username, email, pageable);
+
+        return ResponseEntity.ok(bannedUsers);
+    }
+
+    @GetMapping("/regular-users")
+    public ResponseEntity<Page<UserForList>> getAllRegularUsers(
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) Boolean isBanned, // Фильтр по статусу бана
+            @RequestParam(required = false) List<Role> roles, // Фильтр по ролям
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
+
+        // Создаем объект Pageable для пагинации и сортировки
+        Pageable pageable = PageRequest.of(page, size, parseSort(sort));
+
+        // Получаем страницу обычных пользователей
+        Page<UserForList> regularUsers = adminService.getAllRegularUsers(username, email, isBanned, roles, pageable);
+
+        return ResponseEntity.ok(regularUsers);
+    }
+
+    @GetMapping("/admins")
+    public ResponseEntity<Page<UserForList>> getAllAdmins(
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) Boolean isBanned, // Новый параметр для фильтрации по isBanned
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
+
+        // Создаем объект Pageable для пагинации и сортировки
+        Pageable pageable = PageRequest.of(page, size, parseSort(sort));
+
+        // Получаем страницу администраторов
+        Page<UserForList> admins = adminService.getAllAdmins(username, email, isBanned, pageable);
+
+        return ResponseEntity.ok(admins);
+    }
+
+    private Sort parseSort(String[] sort) {
+        if (sort == null || sort.length == 0) {
+            // Возвращаем сортировку по умолчанию, если параметр sort не передан
+            return Sort.by(Sort.Direction.DESC, "createdAt");
+        }
+
+        List<Sort.Order> orders = new ArrayList<>();
+        for (String sortOrder : sort) {
+            String[] parts = sortOrder.split(",");
+            if (parts.length == 2) {
+                String field = parts[0]; // Поле для сортировки (например, "createdAt")
+                Sort.Direction direction = Sort.Direction.fromString(parts[1]); // Направление сортировки
+                orders.add(new Sort.Order(direction, field));
+            } else {
+                // Если строка некорректна, используем сортировку по умолчанию
+                orders.add(new Sort.Order(Sort.Direction.DESC, "createdAt"));
+            }
+        }
+
+        // Преобразуем список Sort.Order в объект Sort
+        return Sort.by(orders);
+    }
+
+
+    /**
+     * Эндпоинт для получения статистики по сайту
+     *
+     * @return Статистика в формате JSON
+     */
+    @GetMapping("/statistics")
+    public ResponseEntity<Map<String, Long>> getSiteStatistics() {
+        Map<String, Long> stats = adminService.getSiteStatistics();
+        return ResponseEntity.ok(stats);
+    }
 
     /**
      * Эндпоинт для создания категории
@@ -98,45 +192,6 @@ public class AdminController {
         return ResponseEntity.ok(new SimpleMessage("Роль MAIN_ADMIN успешно выдана пользователю " + user.getUsername()));
     }
 
-
-    /**
-     * Эндпоинт для получения списка администраторов с пагинацией и фильтрацией
-     *
-     * @param role
-     * @param username
-     * @param email
-     * @param page
-     * @param size
-     * @param sortBy
-     * @param ascending
-     * @return
-     */
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MAIN_ADMIN')")
-    @GetMapping("/get-admins")
-    public ResponseEntity<Page<UserListDTO>> getAdmins(
-            @RequestParam(required = false) String role,
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String email,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "username") String sortBy,
-            @RequestParam(defaultValue = "true") boolean ascending) {
-
-        // Если role не передан, ищем пользователей с ролями ROLE_ADMIN и ROLE_MAIN_ADMIN
-        if (role == null) {
-            role = "ROLE_ADMIN,ROLE_MAIN_ADMIN"; // Строка с двумя ролями
-        }
-
-        // Преобразуем строку role в список ролей
-        List<Role> roles = Arrays.stream(role.split(","))
-                .map(String::toUpperCase) // Преобразуем в верхний регистр, чтобы избежать проблем с регистром
-                .map(Role::valueOf) // Преобразуем строку в enum Role
-                .collect(Collectors.toList());
-
-        Page<UserListDTO> users = userService.getUsersWithFilters(roles, username, email, page, size, sortBy, ascending);
-        return ResponseEntity.ok(users);
-    }
-
     /**
      * Эндпоинт для выдачи бана пользователю с указанием причины
      *
@@ -162,43 +217,5 @@ public class AdminController {
     public ResponseEntity<SimpleMessage> unbanUser(@PathVariable Long userId) {
         User unbannedUser = userService.unbanUser(userId);
         return ResponseEntity.ok(new SimpleMessage("Пользователь " + unbannedUser.getUsername() + " разбанен"));
-    }
-
-    /**
-     * Эндпоинт для получения списка забаненых пользователей с пагинацией и фильтрацией
-     *
-     * @param role
-     * @param username
-     * @param email
-     * @param page
-     * @param size
-     * @param sortBy
-     * @param ascending
-     * @return
-     */
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MAIN_ADMIN')")
-    @GetMapping("/get-banned-users")
-    public ResponseEntity<Page<UserListDTO>> getBannedUsers(
-            @RequestParam(required = false) String role,
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String email,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "username") String sortBy,
-            @RequestParam(defaultValue = "true") boolean ascending) {
-
-        // Если role не передан, ищем пользователей с ролями ROLE_CUSTOMER и ROLE_FREELANCER
-        if (role == null) {
-            role = "ROLE_CUSTOMER,ROLE_FREELANCER"; // Строка с двумя ролями
-        }
-
-        // Преобразуем строку role в список ролей
-        List<Role> roles = Arrays.stream(role.split(","))
-                .map(String::toUpperCase)
-                .map(Role::valueOf)
-                .collect(Collectors.toList());
-
-        Page<UserListDTO> users = userService.getBannedUsersWithFilters(roles, username, email, page, size, sortBy, ascending);
-        return ResponseEntity.ok(users);
     }
 }

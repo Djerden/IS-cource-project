@@ -1,20 +1,22 @@
 package com.djeno.backend.controllers;
 
 import com.djeno.backend.models.DTO.SimpleMessage;
-import com.djeno.backend.models.DTO.user.UserDetailsUpdate;
-import com.djeno.backend.models.DTO.UserHeaderinfo;
-import com.djeno.backend.models.DTO.user.ChangeEmailRequest;
-import com.djeno.backend.models.DTO.user.ChangePasswordRequest;
-import com.djeno.backend.models.DTO.user.ChangeUsernameRequest;
-import com.djeno.backend.models.DTO.user.UserProfileInfo;
+import com.djeno.backend.models.DTO.user.*;
 import com.djeno.backend.models.models.Skill;
+import com.djeno.backend.services.AdminService;
 import com.djeno.backend.services.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -23,8 +25,75 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final AdminService adminService;
 
+    @GetMapping("/freelancers")
+    public ResponseEntity<Page<UserForList>> getAllFreelancers(
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) Boolean isBanned, // Новый параметр для фильтрации по isBanned
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
 
+        // Создаем объект Pageable для пагинации и сортировки
+        Pageable pageable = PageRequest.of(page, size, parseSort(sort));
+
+        // Получаем страницу фрилансеров
+        Page<UserForList> freelancers = adminService.getAllFreelancers(username, email, isBanned, pageable);
+
+        return ResponseEntity.ok(freelancers);
+    }
+
+    private Sort parseSort(String[] sort) {
+        if (sort == null || sort.length == 0) {
+            // Возвращаем сортировку по умолчанию, если параметр sort не передан
+            return Sort.by(Sort.Direction.DESC, "createdAt");
+        }
+
+        List<Sort.Order> orders = new ArrayList<>();
+        for (String sortOrder : sort) {
+            String[] parts = sortOrder.split(",");
+            if (parts.length == 2) {
+                String field = parts[0]; // Поле для сортировки (например, "createdAt")
+                Sort.Direction direction = Sort.Direction.fromString(parts[1]); // Направление сортировки
+                orders.add(new Sort.Order(direction, field));
+            } else {
+                // Если строка некорректна, используем сортировку по умолчанию
+                orders.add(new Sort.Order(Sort.Direction.DESC, "createdAt"));
+            }
+        }
+
+        // Преобразуем список Sort.Order в объект Sort
+        return Sort.by(orders);
+    }
+
+    // Получение баланса
+    @GetMapping("/balance")
+    public ResponseEntity<Money> getBalance() {
+        BigDecimal balance = userService.getCurrentUser().getBalance();
+        Money money = new Money();
+        money.setCurrency(balance);
+        return ResponseEntity.ok(money);
+    }
+
+    // Пополнение баланса
+    @PostMapping("/balance/deposit")
+    public ResponseEntity<Money> deposit(@RequestBody Money money) {
+        BigDecimal newBalance = userService.deposit(money.getCurrency());
+        Money response = new Money();
+        response.setCurrency(newBalance);
+        return ResponseEntity.ok(response);
+    }
+
+    // Вывод денег с баланса
+    @PostMapping("/balance/withdraw")
+    public ResponseEntity<Money> withdraw(@RequestBody Money money) {
+        BigDecimal newBalance = userService.withdraw(money.getCurrency());
+        Money response = new Money();
+        response.setCurrency(newBalance);
+        return ResponseEntity.ok(response);
+    }
 
     // Метод, который вернет необходимые данные для хедера: username, аватар профиля
     @GetMapping("/get-user-header-info")

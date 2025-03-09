@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Pagination } from 'antd';
+import {Button, Pagination} from 'antd';
 import BlogCard from './../components/blog/BlogCard.jsx';
+import {jwtDecode} from 'jwt-decode'; // Импортируем библиотеку для декодирования JWT
 
 export default function Blog() {
     const [articles, setArticles] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
+
+    const token = localStorage.getItem('jwt');
+    const decodedToken = token ? jwtDecode(token) : null; // Декодируем токен
+    const currentUserRole = decodedToken?.role; // Роль текущего пользователя
 
     const fetchArticles = async (page = 1, size = 10) => {
         try {
@@ -31,12 +36,14 @@ export default function Blog() {
         <div className="p-8">
             <div className="max-w-6xl mx-auto">
                 {/* Кнопка "Написать статью" */}
-                <NavLink
-                    to="/blog/write-article"
-                    className="inline-block mb-8 px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
-                >
-                    Написать статью
-                </NavLink>
+                {(currentUserRole === 'ROLE_ADMIN' ||  currentUserRole === 'ROLE_MAIN_ADMIN') && (
+                    <NavLink
+                        to="/blog/write-article"
+                        className="inline-block mb-8 px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
+                    >
+                        Написать статью
+                    </NavLink>
+                )}
 
                 {/* Список статей */}
                 <div className="space-y-8">

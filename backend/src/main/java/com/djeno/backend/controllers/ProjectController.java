@@ -7,6 +7,9 @@ import com.djeno.backend.models.models.Project;
 import com.djeno.backend.services.ProjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RequiredArgsConstructor
 @RequestMapping("/project")
@@ -22,6 +26,25 @@ public class ProjectController {
 
     private final ProjectService projectService;
 
+    /**
+     * Эндпоинт для получения списка проектов, принадлежащих пользователю по его username, с пагинацией и сортировкой
+     *
+     * @param username username пользователя
+     * @param page     номер страницы (начиная с 0)
+     * @param size     количество элементов на странице
+     * @return Страница проектов, принадлежащих пользователю
+     */
+    @GetMapping("/user/{username}")
+    public ResponseEntity<Page<ProjectDTO>> getProjectsByUsername(
+            @PathVariable String username,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        // Создаем объект Pageable с сортировкой по дате создания (сначала новые)
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<ProjectDTO> projects = projectService.getProjectsByUsername(username, pageable);
+        return ResponseEntity.ok(projects);
+    }
 
     /**
      * Эндпоинт для получения всей информации о проекте

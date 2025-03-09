@@ -23,12 +23,4 @@ public class InfoController {
         UserProfileInfoPublic userProfileInfo = userService.getPublicProfileInfoByUsername(username);
         return ResponseEntity.ok(userProfileInfo);
     }
-
-
-
-    // метод для получения категорий
-
-    // метод для получения списка фрилансеров
-
-    // метод для получения списка проектов по категории (в ограниченном виде)
 }

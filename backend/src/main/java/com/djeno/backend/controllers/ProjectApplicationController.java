@@ -1,6 +1,8 @@
 package com.djeno.backend.controllers;
 
+import com.djeno.backend.models.DTO.SimpleMessage;
 import com.djeno.backend.models.DTO.project.ProjectApplicationDTO;
+import com.djeno.backend.models.DTO.project.ProjectApplicationRequest;
 import com.djeno.backend.services.ProjectApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,9 +18,9 @@ public class ProjectApplicationController {
     private final ProjectApplicationService projectApplicationService;
 
     @PostMapping
-    public ResponseEntity<ProjectApplicationDTO> createApplication(@RequestBody ProjectApplicationDTO applicationDTO) {
-        ProjectApplicationDTO createdApplication = projectApplicationService.createApplication(applicationDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdApplication);
+    public ResponseEntity<SimpleMessage> createApplication(@RequestBody ProjectApplicationRequest applicationDTO) {
+        projectApplicationService.createApplication(applicationDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new SimpleMessage("Заявка создана"));
     }
 
     @GetMapping("/project/{projectId}")

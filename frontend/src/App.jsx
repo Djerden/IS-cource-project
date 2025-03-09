@@ -23,6 +23,7 @@ import CreateArticleForBlogPage from "./pages/CreateArticleForBlogPage.jsx";
 import CreateProjectPage from "./pages/projects/CreateProjectPage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
 import CreateProjectApplicationPage from "./pages/projects/CreateProjectApplicationPage.jsx";
+import BalancePage from "./pages/BalancePage.jsx";
 
 function App() {
 
@@ -127,7 +128,10 @@ function App() {
                     path: '/chat/:chatId',
                     element: <ChatPage />
                 },
-
+                {
+                    path: '/balance/:option',
+                    element: <BalancePage />
+                },
             ]
         },
     ])

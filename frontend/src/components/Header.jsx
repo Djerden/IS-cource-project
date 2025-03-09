@@ -6,67 +6,53 @@ import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons
 export default function Header() {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
-    const [avatarUrl, setAvatarUrl] = useState(null);
 
-    // Функция для декодирования JWT токена
-    const decodeJWT = (token) => {
-        try {
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const payload = JSON.parse(atob(base64));
-            return payload;
-        } catch (error) {
-            console.error('Error decoding JWT:', error);
-            return null;
-        }
-    };
-
-    // Функция для обновления состояния пользователя
-    const updateUserFromToken = () => {
+    // Функция для получения данных пользователя (включая баланс и аватар)
+    const fetchUserData = async () => {
         const token = localStorage.getItem('jwt');
         if (token) {
-            const payload = decodeJWT(token);
-            if (payload) {
-                setUser({
-                    id: payload.id,
-                    username: payload.username,
-                    email: payload.email,
-                    role: payload.role,
+            try {
+                const response = await fetch('http://localhost:8080/user/get-user-header-info', {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 });
+                if (response.ok) {
+                    const data = await response.json();
+                    setUser(data)
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
             }
-        } else {
-            setUser(null);
-            setAvatarUrl(null);
         }
     };
 
-    // Проверка токена и установка пользователя
+    // Обновляем данные пользователя при монтировании компонента
     useEffect(() => {
-        const token = localStorage.getItem('jwt');
-        updateUserFromToken(token);
-
-        // Интервал для проверки изменения токена
-        const interval = setInterval(() => {
-            const currentToken = localStorage.getItem('jwt');
-            if (currentToken !== token) {
-                updateUserFromToken(currentToken);
-            }
-        }, 500); // Проверяем каждые 500 мс
-
-        // Очистка интервала при размонтировании компонента
-        return () => clearInterval(interval);
+        fetchUserData();
     }, []);
 
     // Обработчик выхода
     const handleLogout = () => {
         localStorage.removeItem('jwt');
         setUser(null);
-        setAvatarUrl(null);
         navigate('/sign-in');
     };
 
-    // Меню для Dropdown
-    const menu = (
+    // Меню для Dropdown баланса
+    const balanceMenu = (
+        <Menu>
+            <Menu.Item key="deposit" onClick={() => navigate('/balance/deposit')}>
+                Deposit
+            </Menu.Item>
+            <Menu.Item key="withdraw" onClick={() => navigate('/balance/withdraw')}>
+                Withdraw
+            </Menu.Item>
+        </Menu>
+    );
+
+    // Меню для Dropdown профиля
+    const profileMenu = (
         <Menu>
             <Menu.Item key="profile" onClick={() => navigate(`/profile/${user?.username}`)}>
                 <UserOutlined /> Profile
@@ -106,14 +92,30 @@ export default function Header() {
                     </NavLink>
                 </nav>
 
-                <div className="flex items-center space-x-4" >
+                <div className="flex items-center space-x-4">
                     {user ? (
-                        <Dropdown overlay={menu} trigger={['hover']} placement="bottomRight">
-                            <div className="flex items-center space-x-2 cursor-pointer">
-                                <span className="text-white">{user.username}</span>
-                                <Avatar src={avatarUrl} icon={<UserOutlined/>} />
-                            </div>
-                        </Dropdown>
+                        <>
+                            {/* Блок с балансом */}
+                            <Dropdown overlay={balanceMenu} trigger={['hover']} placement="bottomRight">
+                                <div className="flex items-center space-x-2 cursor-pointer">
+                                    <span className="text-white">Balance: {user.balance ?? 0}$</span>
+                                </div>
+                            </Dropdown>
+
+                            {/* Блок с профилем и аватаром */}
+                            <Dropdown overlay={profileMenu} trigger={['hover']} placement="bottomRight">
+                                <div className="flex items-center space-x-2 cursor-pointer">
+                                    <span className="text-white">{user.username}</span>
+                                    <Avatar
+                                        src={user.profilePicture ? `data:${user.pictureMimeType};base64,${user.profilePicture}` : null}
+                                        icon={<UserOutlined />}
+                                        alt="Profile"
+                                        size={40}
+                                        className="rounded-full object-cover"
+                                    />
+                                </div>
+                            </Dropdown>
+                        </>
                     ) : (
                         <>
                             <NavLink to="/sign-in" className="text-white hover:text-indigo-500">

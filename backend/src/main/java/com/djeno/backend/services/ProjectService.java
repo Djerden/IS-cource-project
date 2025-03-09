@@ -11,10 +11,7 @@ import com.djeno.backend.repositories.CategoryRepository;
 import com.djeno.backend.repositories.ProjectRepository;
 import com.djeno.backend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +29,23 @@ public class ProjectService {
     private final UserRepository userRepository;
 
     private final UserService userService;
+
+    /**
+     * Метод для получения списка проектов, принадлежащих пользователю по его username, с пагинацией и сортировкой
+     *
+     * @param username username пользователя
+     * @param pageable объект пагинации и сортировки
+     * @return Страница проектов, принадлежащих пользователю
+     */
+    public Page<ProjectDTO> getProjectsByUsername(String username, Pageable pageable) {
+
+        User user = userService.getByUsername(username);
+
+        Long userId = user.getId();
+
+        Page<Project> projects = projectRepository.findByOwnerIdOrFreelancerId(userId, userId, pageable);
+        return projects.map(this::convertToDTO);
+    }
 
     /**
      * Метод для получения информации о проекте

@@ -19,12 +19,18 @@ export default function ProjectApplicationCard({ application, onAccept }) {
         }
     };
 
+    // Проверяем, что freelancer существует
+    const freelancerName = application.freelancerUsername ? application.freelancerUsername : "Неизвестный фрилансер";
+
     return (
-        <Card title={`Заявка от ${application.freelancer.username}`} className="mb-4">
-            <Text strong>Сообщение:</Text> {application.message} <br />
+        <Card
+            title={`Заявка от ${freelancerName}`}
+            className="mb-4"
+            style={{ width: '100%' }} // Устанавливаем ширину 100%
+        >
             <Text strong>Цена:</Text> ${application.price} <br />
             <Text strong>Дедлайн:</Text> {new Date(application.deadline).toLocaleDateString()} <br />
-            <Text strong>Статус:</Text> {application.status} <br />
+            <Text strong>Сообщение:</Text> {application.message} <br />
 
             {application.status === 'PENDING' && (
                 <Button type="primary" onClick={handleAccept}>

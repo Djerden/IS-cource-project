@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { NavLink, useParams, useNavigate } from "react-router-dom";
-import { Row, Col, Card, Button, DatePicker, Slider, Select, Spin, Pagination } from "antd";
+import { Row, Col, Card, Button, DatePicker, InputNumber, Select, Spin, Pagination } from "antd";
 import ProjectCard from "../components/orders/ProjectCard.jsx";
-import {jwtDecode} from "jwt-decode"; // Импортируем новый компонент
+import { jwtDecode } from "jwt-decode"; // Импортируем новый компонент
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 export default function Orders() {
-
     const token = localStorage.getItem('jwt');
     const decodedToken = jwtDecode(token); // Декодируем токен
     const userRole = decodedToken?.role; // Получаем роль пользователя
@@ -181,15 +180,21 @@ export default function Orders() {
                             onChange={(dates) => setDeadlineRange(dates)}
                         />
 
-                        <Slider
-                            range
-                            defaultValue={[0, 100]}
-                            className="mb-4"
-                            onChange={(values) => {
-                                setMinBudget(values[0]);
-                                setMaxBudget(values[1]);
-                            }}
-                        />
+                        {/* Заменяем Slider на два InputNumber */}
+                        <div className="flex gap-2 mb-4">
+                            <InputNumber
+                                placeholder="От"
+                                style={{ width: '100%' }}
+                                value={minBudget}
+                                onChange={(value) => setMinBudget(value)}
+                            />
+                            <InputNumber
+                                placeholder="До"
+                                style={{ width: '100%' }}
+                                value={maxBudget}
+                                onChange={(value) => setMaxBudget(value)}
+                            />
+                        </div>
 
                         <Button type="primary" block onClick={fetchOrders}>
                             Применить фильтры
