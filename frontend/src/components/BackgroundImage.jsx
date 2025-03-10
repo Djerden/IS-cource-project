@@ -3,7 +3,6 @@ import {useEffect} from "react";
 
 export default function BackgroundImage({ children }) {
 
-    // Отключаем прокрутку при монтировании компонента
     useEffect(() => {
         document.body.style.overflow = 'hidden'; // Отключаем прокрутку
         return () => {

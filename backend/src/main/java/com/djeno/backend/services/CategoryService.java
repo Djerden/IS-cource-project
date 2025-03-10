@@ -13,7 +13,7 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
 
-    // Новый метод для получения всех категорий
+    // Метод для получения всех категорий
     public List<Category> getAllCategories() {
         return categoryRepository.findAllCategories();
     }

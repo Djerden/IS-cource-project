@@ -17,6 +17,7 @@ import java.util.UUID;
 public class MinioService {
     public final static String AVATARS_BUCKET = "avatars";
     public final static String ARTICLES_BUCKET = "articles";
+    public static final String PROJECT_FILES_BUCKET = "project-files";
 
     private final MinioClient minioClient;
 

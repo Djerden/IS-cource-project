@@ -4,7 +4,7 @@ export default function BlogCard({ article }) {
     return (
         <NavLink to={`/blog/${article.id}`} className="block">
             <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                {/* Изображение статьи */}
+
                 {/* Изображение статьи */}
                 {article.picture && article.pictureMimeType && (
                     <img

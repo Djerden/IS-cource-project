@@ -14,23 +14,23 @@ public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;  // Идентификатор транзакции
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;  // Связь с пользователем, который совершил транзакцию
+    private User user;
 
     @ManyToOne
     @JoinColumn(name = "project_id", nullable = true)
-    private Project project;  // Связь с проектом, если транзакция связана с проектом
+    private Project project;
 
     @Column(nullable = false)
-    private BigDecimal amount;  // Сумма транзакции
+    private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TransactionType transactionType;  // Тип транзакции (депозит, вывод и т.д.)
+    private TransactionType transactionType;
 
     @Column(nullable = false)
-    private LocalDateTime transactionDate;  // Дата и время транзакции
+    private LocalDateTime transactionDate;
 }

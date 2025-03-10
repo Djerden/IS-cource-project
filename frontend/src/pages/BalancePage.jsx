@@ -76,7 +76,7 @@ const BalancePage = () => {
             }
 
             const result = await response.json();
-            setBalance(result.currency); // Обновляем баланс из ответа сервера
+            setBalance(result.currency);
             message.success(mode === 'deposit' ? 'Баланс успешно пополнен' : 'Средства успешно выведены');
         } catch (error) {
             message.error(error.message);

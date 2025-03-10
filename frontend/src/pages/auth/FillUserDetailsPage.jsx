@@ -46,7 +46,7 @@ export default function FillUserDetails() {
 
     // Обработчик пропуска
     const handleSkip = () => {
-        navigate('/orders'); // Перенаправляем на страницу /orders
+        navigate('/orders');
     };
 
     return (

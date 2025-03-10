@@ -63,17 +63,14 @@ public class AuthController {
     public ResponseEntity<SimpleMessage> verifyEmail(@RequestBody VerificationCode verificationCode) {
         User user = userService.getCurrentUser();
 
-        // Проверяем совпадение кода
         if (!user.getVerificationCode().equals(verificationCode.getCode())) {
             return ResponseEntity.badRequest().body(new SimpleMessage("Неверный код подтверждения"));
         }
 
-        // Проверяем истечение времени действия кода (например, 15 минут)
         if (user.getEmailVerificationTime().plusMinutes(15).isBefore(LocalDateTime.now())) {
             return ResponseEntity.badRequest().body(new SimpleMessage("Срок действия кода истек"));
         }
 
-        // Подтверждаем email
         user.setIsEmailVerified(true);
         user.setVerificationCode(null); // Очищаем код
         user.setEmailVerificationTime(null); // Очищаем время действия кода

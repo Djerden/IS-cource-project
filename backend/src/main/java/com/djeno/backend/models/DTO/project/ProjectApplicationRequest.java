@@ -7,8 +7,8 @@ import java.time.LocalDateTime;
 
 @Data
 public class ProjectApplicationRequest {
-    private Long projectId; // ID проекта
-    private BigDecimal price; // Цена
-    private LocalDateTime deadline; // Дедлайн
-    private String message; // Сообщение
+    private Long projectId;
+    private BigDecimal price;
+    private LocalDateTime deadline;
+    private String message;
 }

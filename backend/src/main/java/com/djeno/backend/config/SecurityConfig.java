@@ -58,7 +58,8 @@ public class SecurityConfig {
                         .requestMatchers("/user/freelancers").permitAll()
                         .requestMatchers("/user/**").authenticated()
                         .requestMatchers("/info/**").authenticated()
-
+                        .requestMatchers("/dispute/**").authenticated()
+                        .requestMatchers("/project-files/**").authenticated()
                         .requestMatchers("/admin/statistics").permitAll()
                         .requestMatchers("/admin/admins").permitAll()
                         .requestMatchers("/admin/regular-users").permitAll()

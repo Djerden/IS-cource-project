@@ -9,29 +9,27 @@ export default function CreateArticleForBlogPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Получаем JWT-токен из localStorage
         const token = localStorage.getItem('jwt');
         if (!token) {
             alert('Вы не авторизованы. Пожалуйста, войдите в систему.');
             return;
         }
 
-        // Создаем FormData для отправки файла и текстовых данных
         const formData = new FormData();
         formData.append('title', title);
         formData.append('description', description);
         formData.append('body', content);
         if (image) {
-            formData.append('pictureFile', image); // Добавляем файл изображения
+            formData.append('pictureFile', image);
         }
 
         try {
             const response = await fetch('http://localhost:8080/blog/article', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`, // Добавляем JWT-токен в заголовок
+                    'Authorization': `Bearer ${token}`,
                 },
-                body: formData, // Используем FormData вместо JSON
+                body: formData,
             });
 
             if (!response.ok) {
@@ -42,7 +40,6 @@ export default function CreateArticleForBlogPage() {
             console.log('Статья создана:', data);
             alert('Статья успешно создана!');
 
-            // Сбрасываем состояния после успешной отправки
             setTitle('');
             setDescription('');
             setContent('');
@@ -91,8 +88,8 @@ export default function CreateArticleForBlogPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Изображение статьи</label>
                         <input
                             type="file"
-                            onChange={(e) => setImage(e.target.files[0])} // Сохраняем выбранный файл
-                            accept="image/*" // Разрешаем загрузку только изображений
+                            onChange={(e) => setImage(e.target.files[0])}
+                            accept="image/*"
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                     </div>

@@ -103,7 +103,6 @@ public class BlogService {
         BlogArticle article = blogArticleRepository.findById(id)
                 .orElseThrow(() -> new ArticleNotFoundException("Статья не найдена"));
 
-        // Обновляем поля, если они переданы
         if (title != null) {
             article.setTitle(title);
         }

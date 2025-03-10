@@ -106,17 +106,14 @@ public class UserService {
     public Skill createSkill(String skillName) {
         User currentUser = getCurrentUser();
 
-        // Проверяем, имеет ли пользователь права на создание навыка
         if (currentUser.getRole() != Role.ROLE_ADMIN && currentUser.getRole() != Role.ROLE_MAIN_ADMIN) {
             throw new RuntimeException("Недостаточно прав для создания навыка");
         }
 
-        // Проверяем, существует ли навык с таким именем
         if (skillRepository.findByName(skillName).isPresent()) {
             throw new RuntimeException("Навык с таким именем уже существует");
         }
 
-        // Создаем новый навык
         Skill skill = new Skill();
         skill.setName(skillName);
         return skillRepository.save(skill);
@@ -202,7 +199,6 @@ public class UserService {
 
         String uniqueFileName = minioService.uploadFile(file, MinioService.AVATARS_BUCKET);
 
-        // Удаляем старую картинку, если она существует
         if (currentUser.getProfilePictureUrl() != null) {
             minioService.deleteFile(currentUser.getProfilePictureUrl(), MinioService.AVATARS_BUCKET);
         }
@@ -223,13 +219,11 @@ public class UserService {
 
         List<Skill> skills = new ArrayList<>();
         if (user.getRole() == Role.ROLE_FREELANCER) {
-            // Получаем навыки пользователя
              skills = userSkillRepository.findByUser(user)
                     .stream()
                     .map(UserSkill::getSkill)
                     .collect(Collectors.toList());
         }
-        // Создаем DTO и заполняем его данными из сущности User
         UserProfileInfoPublic userProfileInfo = UserProfileInfoPublic.builder()
                 .id(user.getId())
                 .username(user.getUsername())
@@ -246,7 +240,6 @@ public class UserService {
                 .skills(skills)
                 .build();
 
-        // Если у пользователя есть картинка профиля, загружаем ее из MinIO
         if (user.getProfilePictureUrl() != null) {
             try (InputStream inputStream = minioService.downloadFile(user.getProfilePictureUrl(), MinioService.AVATARS_BUCKET)) {
                 byte[] picture = inputStream.readAllBytes();
@@ -264,7 +257,6 @@ public class UserService {
     public UserProfileInfo getFullProfileInfo() {
         User currentUser = getCurrentUser();
 
-        // Создаем DTO и заполняем его данными из сущности User
         UserProfileInfo userProfileInfo = UserProfileInfo.builder()
                 .id(currentUser.getId())
                 .username(currentUser.getUsername())
@@ -282,7 +274,6 @@ public class UserService {
                 .banReason(currentUser.getBanReason())
                 .build();
 
-        // Если у пользователя есть картинка профиля, загружаем ее из MinIO
         if (currentUser.getProfilePictureUrl() != null) {
             try (InputStream inputStream = minioService.downloadFile(currentUser.getProfilePictureUrl(), MinioService.AVATARS_BUCKET)) {
                 byte[] picture = inputStream.readAllBytes();
@@ -300,12 +291,10 @@ public class UserService {
     public void changePassword(ChangePasswordRequest changePasswordRequest) {
         User currentUser = getCurrentUser();
         PasswordEncoder passwordEncoder = applicationContext.getBean(PasswordEncoder.class);
-        // Проверяем, совпадает ли старый пароль с текущим
         if (!passwordEncoder.matches(changePasswordRequest.getOldPassword(), currentUser.getPassword())) {
             throw new RuntimeException("Старый пароль неверный");
         }
 
-        // Хешируем новый пароль и сохраняем его
         String newPasswordHash = passwordEncoder.encode(changePasswordRequest.getNewPassword());
         currentUser.setPassword(newPasswordHash);
         userRepository.save(currentUser);
@@ -437,7 +426,6 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-        // Если у пользователя нет роли ADMIN, то не меняем роль
         if (!isAdmin(user)) {
             throw new RuntimeException("Пользователь не имеет роли ADMIN");
         }
@@ -455,7 +443,6 @@ public class UserService {
     public User grantMainAdminRole(Long userId) {
         User currentUser = getCurrentUser();
 
-        // Проверяем, может ли текущий пользователь выдать роль MAIN_ADMIN
         if (!isMainAdmin(currentUser)) {
             throw new RuntimeException("Недостаточно прав для выдачи роли");
         }
@@ -463,7 +450,6 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
-        // Если у пользователя уже есть роль MAIN_ADMIN, то не меняем роль
         if (user.getRole() == Role.ROLE_MAIN_ADMIN) {
             throw new RuntimeException("Пользователь уже имеет роль MAIN_ADMIN");
         }

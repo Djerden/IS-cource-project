@@ -20,24 +20,19 @@ export default function UsersListPage() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            // Формируем URL с учетом всех фильтров
             const url = new URL('http://localhost:8080/admin/regular-users');
 
-            // Добавляем параметры фильтрации
             url.searchParams.set('username', username);
             url.searchParams.set('email', email);
             url.searchParams.set('page', page - 1);
             url.searchParams.set('size', size);
 
-            // Добавляем параметры сортировки
             sort.forEach((s) => url.searchParams.append('sort', s));
 
-            // Добавляем фильтр по ролям
             if (roleFilter !== 'ALL') {
                 url.searchParams.set('roles', roleFilter);
             }
 
-            // Добавляем фильтр по статусу бана
             if (banFilter !== 'ALL') {
                 url.searchParams.set('isBanned', banFilter === 'BANNED');
             }
@@ -56,7 +51,6 @@ export default function UsersListPage() {
         }
     };
 
-    // Загрузка данных при изменении параметров
     useEffect(() => {
         fetchUsers();
     }, [page, size, username, email, sort, roleFilter, banFilter]);

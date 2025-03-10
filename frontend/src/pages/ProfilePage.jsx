@@ -33,7 +33,7 @@ export default function ProfilePage() {
             case 'ROLE_MAIN_ADMIN':
                 return 'Main Admin';
             default:
-                return 'Unknown'; // или можно выбросить ошибку, если роль не найдена
+                return 'Unknown';
         }
     }
 
@@ -62,12 +62,10 @@ export default function ProfilePage() {
         }
     };
 
-    // Загрузка данных о пользователе
     useEffect(() => {
         fetchUserProfile();
     }, [username, token]);
 
-    // Загрузка проектов пользователя
     useEffect(() => {
         const fetchUserProjects = async () => {
             try {

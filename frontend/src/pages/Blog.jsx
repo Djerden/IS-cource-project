@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {Button, Pagination} from 'antd';
 import BlogCard from './../components/blog/BlogCard.jsx';
-import {jwtDecode} from 'jwt-decode'; // Импортируем библиотеку для декодирования JWT
+import {jwtDecode} from 'jwt-decode';
 
 export default function Blog() {
     const [articles, setArticles] = useState([]);
@@ -11,7 +11,7 @@ export default function Blog() {
 
     const token = localStorage.getItem('jwt');
     const decodedToken = token ? jwtDecode(token) : null; // Декодируем токен
-    const currentUserRole = decodedToken?.role; // Роль текущего пользователя
+    const currentUserRole = decodedToken?.role;
 
     const fetchArticles = async (page = 1, size = 10) => {
         try {
@@ -56,8 +56,8 @@ export default function Blog() {
                 <div className="mt-8 flex justify-center">
                     <Pagination
                         current={currentPage}
-                        total={totalPages * 10} // Общее количество элементов
-                        pageSize={10} // Количество элементов на странице
+                        total={totalPages * 10}
+                        pageSize={10}
                         onChange={handlePageChange}
                         showSizeChanger={false}
                     />

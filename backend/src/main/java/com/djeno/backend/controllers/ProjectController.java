@@ -3,6 +3,7 @@ package com.djeno.backend.controllers;
 import com.djeno.backend.models.DTO.ProjectCreate;
 import com.djeno.backend.models.DTO.SimpleMessage;
 import com.djeno.backend.models.DTO.project.ProjectDTO;
+import com.djeno.backend.models.DTO.project.TopUpProjectBalanceRequest;
 import com.djeno.backend.models.models.Project;
 import com.djeno.backend.services.ProjectService;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,20 @@ import java.util.List;
 public class ProjectController {
 
     private final ProjectService projectService;
+
+    // завершить проект (поработать с балансами проекта и исполнителя)
+    @PostMapping("/{projectId}/complete")
+    public ResponseEntity<SimpleMessage> completeProject(@PathVariable Long projectId) {
+        projectService.completeProject(projectId);
+        return ResponseEntity.ok(new SimpleMessage("Проект успешно завершен"));
+    }
+
+    // Сделать пополнение баланса проекта
+    @PostMapping("/top-up-balance")
+    public ResponseEntity<SimpleMessage> topUpProjectBalance(@RequestBody TopUpProjectBalanceRequest request) {
+        projectService.topUpProjectBalance(request);
+        return ResponseEntity.ok(new SimpleMessage("Баланс проекта успешно пополнен"));
+    }
 
     /**
      * Эндпоинт для получения списка проектов, принадлежащих пользователю по его username, с пагинацией и сортировкой
@@ -148,12 +163,4 @@ public class ProjectController {
         projectService.assignFreelancer(projectId, freelancerId);
         return ResponseEntity.ok(new SimpleMessage("Фрилансер назначен на проект"));
     }
-
-    // получить отклики по проекту
-
-    // сделать отклик на проект
-
-    // Сделать пополнение баланса проекта (придумать, нужно ли сразу иметь баланс, чтобы выбрать исполнителя или нет)
-
-    // завершить проект (поработать с балансами проекта и исполнителя)
 }

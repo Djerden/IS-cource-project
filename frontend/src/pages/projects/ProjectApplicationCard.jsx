@@ -1,18 +1,30 @@
 import { Card, Typography, Button, message } from "antd";
+import {jwtDecode} from "jwt-decode";
 
 const { Text } = Typography;
 
-export default function ProjectApplicationCard({ application, onAccept }) {
+export default function ProjectApplicationCard({ application, project, refreshProject}) {
+    const token = localStorage.getItem('jwt');
+    const decodedToken = token ? jwtDecode(token) : null; // Декодируем токен
+    const currentUserRole = decodedToken?.role; // Роль текущего пользователя
+    const currentUserUsername = decodedToken?.username // Usename текущего пользователя
+
     const handleAccept = async () => {
         try {
-            const response = await fetch(`http://localhost:8080/project/application/${application.id}/accept`, {
+            const response = await fetch(`http://localhost:8080/project-application/${application.id}/accept`, {
                 method: "POST",
+                headers: {
+                    'Authorization': `Bearer ${token}`, // Добавляем токен в заголовок
+                    'Content-Type': 'application/json',
+                },
             });
+
             if (!response.ok) {
                 throw new Error('Failed to accept application');
             }
+
             message.success('Заявка принята');
-            onAccept(); // Обновляем состояние после принятия заявки
+            refreshProject();
         } catch (error) {
             console.error('Error accepting application:', error);
             message.error('Ошибка при принятии заявки');
@@ -32,7 +44,7 @@ export default function ProjectApplicationCard({ application, onAccept }) {
             <Text strong>Дедлайн:</Text> {new Date(application.deadline).toLocaleDateString()} <br />
             <Text strong>Сообщение:</Text> {application.message} <br />
 
-            {application.status === 'PENDING' && (
+            {application.status === 'PENDING' && project.ownerUsername === currentUserUsername && (
                 <Button type="primary" onClick={handleAccept}>
                     Принять заявку
                 </Button>

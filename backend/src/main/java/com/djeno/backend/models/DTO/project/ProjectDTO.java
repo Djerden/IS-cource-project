@@ -9,14 +9,14 @@ import java.time.LocalDateTime;
 @Data
 public class ProjectDTO {
     private Long id;
-    private String categoryName; // Название категории
+    private String categoryName;
     private String title;
     private String description;
     private BigDecimal budget;
     private LocalDateTime deadline;
     private ProjectStatus status;
-    private String freelancerUsername; // Имя пользователя фрилансера
-    private String ownerUsername; // Имя пользователя владельца
+    private String freelancerUsername;
+    private String ownerUsername;
     private BigDecimal balance;
     private LocalDateTime createdAt;
 }

@@ -4,7 +4,6 @@ import SkillsInfoComponent from "../components/settings/SkillsInfoComponent.jsx"
 import ChangePasswordComponent from "../components/settings/ChangePasswordComponent.jsx";
 
 export default function SettingsPage() {
-    // Инициализация состояния с пустыми значениями
     const [user, setUser] = useState({
         id: null,
         username: '',
@@ -27,7 +26,7 @@ export default function SettingsPage() {
     const token = localStorage.getItem('jwt');
     console.log(user);
 
-    // Загрузка данных профиля при монтировании компонента
+
     useEffect(() => {
         fetchAndSetProfileInfo();
     }, []);
@@ -45,7 +44,6 @@ export default function SettingsPage() {
 
             if (response.ok) {
                 const data = await response.json();
-                // Обновляем состояние пользователя
                 setUser({
                     ...data,
                     profilePictureUrl: data.profilePicture
@@ -63,7 +61,6 @@ export default function SettingsPage() {
         }
     };
 
-    // Если пользователь забанен, показываем только причину блокировки
     if (user.isBanned) {
         return (
             <div className="p-8">

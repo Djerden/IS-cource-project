@@ -2,6 +2,7 @@ package com.djeno.backend.services;
 
 import com.djeno.backend.models.DTO.ProjectCreate;
 import com.djeno.backend.models.DTO.project.ProjectDTO;
+import com.djeno.backend.models.DTO.project.TopUpProjectBalanceRequest;
 import com.djeno.backend.models.enums.ProjectStatus;
 import com.djeno.backend.models.enums.Role;
 import com.djeno.backend.models.models.Category;
@@ -14,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -29,6 +32,96 @@ public class ProjectService {
     private final UserRepository userRepository;
 
     private final UserService userService;
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public void completeProject(Long projectId) {
+        User currentUser = userService.getCurrentUser();
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("Проект не найден"));
+
+        // Проверяем, что текущий пользователь — владелец проекта
+        if (!project.getOwner().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Только владелец проекта может завершить проект");
+        }
+
+        // Проверяем, что проект еще не завершен
+        if (project.getStatus() == ProjectStatus.COMPLETED || project.getStatus() == ProjectStatus.CANCELLED) {
+            throw new RuntimeException("Проект уже завершен или отменен");
+        }
+
+        // Получаем владельца и фрилансера
+        User owner = project.getOwner();
+        User freelancer = project.getFreelancer();
+
+        // Сумма для перевода
+        BigDecimal projectBalance = project.getBalance();
+
+        // Если есть фрилансер, проверяем, что баланс проекта не меньше бюджета
+        if (freelancer != null) {
+            if (projectBalance.compareTo(project.getBudget()) < 0) {
+                throw new RuntimeException("Недостаточно средств на балансе проекта для выплаты фрилансеру");
+            }
+
+            // Переводим бюджет фрилансеру
+            freelancer.setBalance(freelancer.getBalance().add(project.getBudget()));
+            userRepository.save(freelancer);
+
+            // Остаток возвращаем владельцу
+            BigDecimal remainingBalance = projectBalance.subtract(project.getBudget());
+            if (remainingBalance.compareTo(BigDecimal.ZERO) > 0) {
+                owner.setBalance(owner.getBalance().add(remainingBalance));
+                userRepository.save(owner);
+            }
+
+            project.setStatus(ProjectStatus.COMPLETED);
+        } else {
+            // Если фрилансера нет, возвращаем всю сумму владельцу
+            owner.setBalance(owner.getBalance().add(projectBalance));
+            userRepository.save(owner);
+
+            project.setStatus(ProjectStatus.CANCELLED);
+        }
+
+        // Обнуляем баланс проекта
+        project.setBalance(BigDecimal.ZERO);
+
+        projectRepository.save(project);
+    }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public void topUpProjectBalance(TopUpProjectBalanceRequest request) {
+
+        User user = userService.getCurrentUser();
+
+        Project project = projectRepository.findById(request.getProjectId())
+                .orElseThrow(() -> new RuntimeException("Проект не найден"));
+
+        // Проверяем, что пользователь — владелец проекта
+        if (!project.getOwner().getId().equals(user.getId())) {
+            throw new RuntimeException("Только владелец проекта может пополнять его баланс");
+        }
+
+        if (project.getStatus() == ProjectStatus.COMPLETED || project.getStatus() == ProjectStatus.CANCELLED) {
+            throw new RuntimeException("Проект уже завершен или отменен");
+        }
+
+        // Проверяем, что у пользователя достаточно средств
+        if (user.getBalance().compareTo(request.getAmount()) < 0) {
+            throw new RuntimeException("Недостаточно средств на балансе пользователя");
+        }
+
+        // Проверяем, что сумма для пополнения положительная
+        if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Сумма для пополнения должна быть больше нуля");
+        }
+
+        user.setBalance(user.getBalance().subtract(request.getAmount()));
+        userRepository.save(user);
+
+        project.setBalance(project.getBalance().add(request.getAmount()));
+        projectRepository.save(project);
+    }
 
     /**
      * Метод для получения списка проектов, принадлежащих пользователю по его username, с пагинацией и сортировкой

@@ -34,7 +34,6 @@ export default function CreateProjectPage() {
         }
     };
 
-    // Загружаем категории при открытии страницы
     useEffect(() => {
         fetchCategories();
     }, []);

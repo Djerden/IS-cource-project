@@ -2,15 +2,15 @@ import { useEffect, useState } from "react";
 import { NavLink, useParams, useNavigate } from "react-router-dom";
 import { Row, Col, Card, Button, DatePicker, InputNumber, Select, Spin, Pagination } from "antd";
 import ProjectCard from "../components/orders/ProjectCard.jsx";
-import { jwtDecode } from "jwt-decode"; // Импортируем новый компонент
+import { jwtDecode } from "jwt-decode";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 export default function Orders() {
     const token = localStorage.getItem('jwt');
-    const decodedToken = jwtDecode(token); // Декодируем токен
-    const userRole = decodedToken?.role; // Получаем роль пользователя
+    const decodedToken = jwtDecode(token);
+    const userRole = decodedToken?.role;
     // Проверяем, авторизован ли пользователь и не является ли он фрилансером
     const shouldShowCreateButton = token && userRole !== "ROLE_FREELANCER";
 
@@ -28,19 +28,17 @@ export default function Orders() {
     const [sortDirection, setSortDirection] = useState("desc");
 
     // Состояния для пагинации
-    const [currentPage, setCurrentPage] = useState(1); // Текущая страница
-    const [pageSize, setPageSize] = useState(10); // Количество элементов на странице
-    const [totalProjects, setTotalProjects] = useState(0); // Общее количество проектов
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [totalProjects, setTotalProjects] = useState(0);
 
     useEffect(() => {
-        // Загружаем категории или подкатегории
         if (categoryId) {
             fetchSubCategories(categoryId);
         } else {
             fetchCategories();
         }
 
-        // Загружаем заказы с фильтрами
         fetchOrders();
     }, [categoryId, minBudget, maxBudget, deadlineRange, sortBy, sortDirection, currentPage, pageSize]);
 
@@ -59,7 +57,7 @@ export default function Orders() {
             throw new Error('Failed to fetch subcategories');
         }
         const data = await response.json();
-        setCategories(data); // Подкатегории заменяют категории
+        setCategories(data);
     };
 
     const fetchOrders = async () => {
@@ -73,7 +71,7 @@ export default function Orders() {
                 deadlineEnd: deadlineRange[1] ? deadlineRange[1].toISOString() : "",
                 sortBy,
                 sortDirection,
-                page: currentPage - 1, // Страницы на сервере начинаются с 0
+                page: currentPage - 1,
                 size: pageSize,
             });
 
@@ -82,8 +80,8 @@ export default function Orders() {
                 throw new Error('Failed to fetch orders');
             }
             const data = await response.json();
-            setOrders(data.content); // Устанавливаем заказы
-            setTotalProjects(data.totalElements); // Устанавливаем общее количество проектов
+            setOrders(data.content);
+            setTotalProjects(data.totalElements);
         } catch (error) {
             console.error('Error fetching orders:', error);
         } finally {
@@ -130,7 +128,7 @@ export default function Orders() {
                         <Row gutter={[16, 16]}>
                             {orders.map((order) => (
                                 <Col span={24} key={order.id}>
-                                    <ProjectCard project={order} /> {/* Используем новый компонент */}
+                                    <ProjectCard project={order} />
                                 </Col>
                             ))}
                         </Row>
@@ -180,7 +178,6 @@ export default function Orders() {
                             onChange={(dates) => setDeadlineRange(dates)}
                         />
 
-                        {/* Заменяем Slider на два InputNumber */}
                         <div className="flex gap-2 mb-4">
                             <InputNumber
                                 placeholder="От"

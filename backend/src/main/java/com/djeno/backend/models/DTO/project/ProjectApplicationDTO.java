@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class ProjectApplicationDTO {
     private Long id;
     private Long projectId;
-    private String freelancerUsername; // Имя пользователя фрилансера
+    private String freelancerUsername;
     private LocalDateTime createdAt;
     private ApplicationStatus status;
     private String message;

@@ -12,13 +12,12 @@ export default function BlogCardPage() {
 
     const token = localStorage.getItem('jwt');
     const decodedToken = token ? jwtDecode(token) : null; // Декодируем токен
-    const currentUserRole = decodedToken?.role; // Роль текущего пользователя
+    const currentUserRole = decodedToken?.role;
 
     const fetchArticle = async () => {
         try {
             const response = await fetch(`http://localhost:8080/blog/articles/${id}`);
             const data = await response.json();
-            console.log("Полученные данные:", data); // Логирование данных
             setArticle(data);
             setEditedTitle(data.title);
             setEditedDescription(data.description);
@@ -50,7 +49,6 @@ export default function BlogCardPage() {
                 throw new Error('Ошибка при сохранении статьи');
             }
             console.log(response);
-            // Обновляем статью после успешного сохранения
             setIsEditing(false);
             fetchArticle();
         } catch (error) {
@@ -71,7 +69,7 @@ export default function BlogCardPage() {
                         className="w-full h-64 object-cover rounded-lg"
                         onError={(e) => {
                             console.error('Ошибка загрузки изображения:', e);
-                            e.target.style.display = 'none'; // Скрыть изображение при ошибке
+                            e.target.style.display = 'none';
                         }}
                     />
                 )}

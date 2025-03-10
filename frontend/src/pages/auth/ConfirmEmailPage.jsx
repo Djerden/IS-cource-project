@@ -15,7 +15,6 @@ export default function ConfirmEmailPage() {
     const navigate = useNavigate();
 
     const location = useLocation(); // Хук для получения информации о текущем пути
-    // Получаем путь, с которого пришел пользователь
     const fromPath = location?.state?.from || 'Unknown'; // Если state передан, берем его, иначе 'Unknown'
 
     console.log(fromPath);
@@ -32,10 +31,9 @@ export default function ConfirmEmailPage() {
                 }
                 return prev - 1;
             });
-        }, 1000); // Обновляем таймер каждую секунду
+        }, 1000);
     };
 
-    // Отправка кода подтверждения
     const sendVerificationCode = async () => {
         const token = localStorage.getItem('jwt');
         try {
@@ -59,10 +57,10 @@ export default function ConfirmEmailPage() {
     // Обработчик нажатия на кнопку отправки/повторной отправки
     const handleSendCode = () => {
         if (isFirstSend) {
-            setIsFirstSend(false); // Убираем флаг первого нажатия
+            setIsFirstSend(false);
         }
         sendVerificationCode();
-        startCountdown(); // Запускаем таймер
+        startCountdown();
     };
 
     // Обработчик изменения значения в инпуте

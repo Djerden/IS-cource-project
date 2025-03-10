@@ -17,6 +17,13 @@ import java.util.List;
 public class ProjectApplicationController {
     private final ProjectApplicationService projectApplicationService;
 
+    // Эндпоинт для получения принятой заявки по ID проекта
+    @GetMapping("/project/{projectId}/approved")
+    public ResponseEntity<ProjectApplicationDTO> getApprovedApplicationByProjectId(@PathVariable Long projectId) {
+        ProjectApplicationDTO approvedApplication = projectApplicationService.getApprovedApplicationByProjectId(projectId);
+        return ResponseEntity.ok(approvedApplication);
+    }
+
     @PostMapping
     public ResponseEntity<SimpleMessage> createApplication(@RequestBody ProjectApplicationRequest applicationDTO) {
         projectApplicationService.createApplication(applicationDTO);
@@ -27,5 +34,11 @@ public class ProjectApplicationController {
     public ResponseEntity<List<ProjectApplicationDTO>> getApplicationsByProjectId(@PathVariable Long projectId) {
         List<ProjectApplicationDTO> applications = projectApplicationService.getApplicationsByProjectId(projectId);
         return ResponseEntity.ok(applications);
+    }
+
+    @PostMapping("/{applicationId}/accept")
+    public ResponseEntity<SimpleMessage> acceptApplication(@PathVariable Long applicationId) {
+        projectApplicationService.acceptApplication(applicationId);
+        return ResponseEntity.ok(new SimpleMessage("Заявка принята, фрилансер назначен исполнителем"));
     }
 }

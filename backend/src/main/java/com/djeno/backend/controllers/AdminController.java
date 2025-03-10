@@ -40,10 +40,10 @@ public class AdminController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
 
-        // Создаем объект Pageable для пагинации и сортировки
+
         Pageable pageable = PageRequest.of(page, size, parseSort(sort));
 
-        // Получаем страницу забаненных пользователей
+
         Page<UserForList> bannedUsers = adminService.getAllBannedUsers(username, email, pageable);
 
         return ResponseEntity.ok(bannedUsers);
@@ -59,10 +59,8 @@ public class AdminController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
 
-        // Создаем объект Pageable для пагинации и сортировки
         Pageable pageable = PageRequest.of(page, size, parseSort(sort));
 
-        // Получаем страницу обычных пользователей
         Page<UserForList> regularUsers = adminService.getAllRegularUsers(username, email, isBanned, roles, pageable);
 
         return ResponseEntity.ok(regularUsers);
@@ -77,10 +75,8 @@ public class AdminController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
 
-        // Создаем объект Pageable для пагинации и сортировки
         Pageable pageable = PageRequest.of(page, size, parseSort(sort));
 
-        // Получаем страницу администраторов
         Page<UserForList> admins = adminService.getAllAdmins(username, email, isBanned, pageable);
 
         return ResponseEntity.ok(admins);

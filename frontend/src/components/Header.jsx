@@ -2,10 +2,15 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Avatar, Dropdown, Menu } from 'antd';
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
+import {jwtDecode} from "jwt-decode";
 
 export default function Header() {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
+
+    const token = localStorage.getItem('jwt');
+    const decodedToken = token ? jwtDecode(token) : null; // Декодируем токен
+    const currentUserRole = decodedToken?.role; // Роль текущего пользователя
 
     // Функция для получения данных пользователя (включая баланс и аватар)
     const fetchUserData = async () => {
@@ -87,9 +92,11 @@ export default function Header() {
                     <NavLink to="/help" className="text-white hover:text-indigo-500">
                         Help
                     </NavLink>
-                    <NavLink to="/admin-panel" className="text-white hover:text-indigo-500">
-                        Admin Panel
-                    </NavLink>
+                    {(currentUserRole === "ROLE_ADMIN" || currentUserRole === "ROLE_MAIN_ADMIN") &&
+                        (<NavLink to="/admin-panel" className="text-white hover:text-indigo-500">
+                            Admin Panel
+                        </NavLink>
+                    )}
                 </nav>
 
                 <div className="flex items-center space-x-4">

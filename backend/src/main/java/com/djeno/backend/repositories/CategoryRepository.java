@@ -21,7 +21,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     boolean existsByName(String name);
 
-    // Новый метод для получения всех категорий
     @Query("SELECT c FROM Category c")
     List<Category> findAllCategories();
 }

@@ -17,19 +17,15 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
-    // Получение всех категорий первого уровня
     @GetMapping
     public List<Category> getCategories(@RequestParam(value = "parentId", required = false) Long parentId) {
         if (parentId == null) {
-            // Если parentId не передан, возвращаем все категории первого уровня
             return categoryService.getCategoriesByParentCategoryNull();
         } else {
-            // Если parentId передан, возвращаем подкатегории второго уровня для выбранной категории
             return categoryService.getSubCategoriesByParentId(parentId);
         }
     }
 
-    // Новый эндпоинт для получения всех категорий
     @GetMapping("/all")
     public List<Category> getAllCategories() {
         return categoryService.getAllCategories();

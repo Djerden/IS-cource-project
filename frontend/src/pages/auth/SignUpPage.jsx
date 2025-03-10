@@ -72,17 +72,14 @@ export default function SignUpPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Сброс ошибок
         setUsernameError('');
         setEmailError('');
 
-        // Проверка совпадения паролей
         if (password !== confirmPassword) {
             alert('Passwords do not match!');
             return;
         }
 
-        // Подготовка данных для отправки
         const signUpData = {
             role: profileType,
             username: username.trim(),
@@ -100,7 +97,6 @@ export default function SignUpPage() {
                 body: JSON.stringify(signUpData),
             });
 
-            // Обработка ответа
             if (!response.ok) {
                 const errorData = await response.json();
                 console.log(errorData);
@@ -114,7 +110,6 @@ export default function SignUpPage() {
                 return;
             }
 
-            // Успешная регистрация
             const result = await response.json();
             console.log('Registration successful:', result);
 
@@ -123,7 +118,6 @@ export default function SignUpPage() {
                 localStorage.setItem('jwt', jwtToken);
             }
 
-            // Переход на страницу подтверждения email
             navigate('/confirm-email', { state: { from: window.location.pathname } });
 
         } catch (error) {

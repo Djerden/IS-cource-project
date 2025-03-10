@@ -15,12 +15,12 @@ export default function HelpCardPage() {
                 return response.json();
             })
             .then(data => {
-                console.log("Received data:", data); // Проверьте данные
+                console.log("Received data:", data);
                 setArticle(data);
             })
             .catch(error => {
                 console.error('Error fetching article:', error);
-                setError(error.message); // Сохраняем ошибку в состоянии
+                setError(error.message);
             });
     }, [id]);
 
@@ -31,7 +31,7 @@ export default function HelpCardPage() {
         try {
             // Заменяем \\n на \n
             const unescapedText = text.replace(/\\n/g, '\n');
-            console.log("Unescaped text:", unescapedText); // Проверьте текст после замены
+            console.log("Unescaped text:", unescapedText);
 
             // Разделяем текст по ** и обрабатываем каждую часть
             const parts = unescapedText.split(/(\*\*.*?\*\*)/g);
@@ -41,7 +41,6 @@ export default function HelpCardPage() {
                     const boldText = part.slice(2, -2);
                     return <strong key={index}>{boldText}</strong>;
                 } else {
-                    // Иначе разбиваем на строки и добавляем <br /> для переносов
                     const lines = part.split('\n');
                     return lines.map((line, lineIndex) => (
                         <React.Fragment key={`${index}-${lineIndex}`}>
