@@ -53,7 +53,7 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.GET, "/auth/send-email-verification-code").authenticated()
                         .requestMatchers(HttpMethod.POST, "/auth/verify-email").authenticated()
-
+                        .requestMatchers("/messages/**").authenticated()
                         .requestMatchers("/info/user/**").permitAll()
                         .requestMatchers("/user/freelancers").permitAll()
                         .requestMatchers("/user/**").authenticated()

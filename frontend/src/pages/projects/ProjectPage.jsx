@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
     Card,
     Typography,
@@ -19,6 +19,9 @@ import ProjectApplicationCard from "./ProjectApplicationCard.jsx";
 import { jwtDecode } from "jwt-decode";
 import DisputeCard from "./DisputeCard.jsx";
 import {Option} from "antd/es/mentions/index.js"; // Компонент для заявок
+import SockJS from 'sockjs-client';
+import { over } from 'stompjs';
+
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -31,20 +34,25 @@ export default function ProjectPage() {
     // Состояние для хранения списка споров
     const [disputes, setDisputes] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isModalVisible, setIsModalVisible] = useState(false); // Состояние для модального окна
-    const [isTopUpModalVisible, setIsTopUpModalVisible] = useState(false); // Состояние для модального окна пополнения баланса
-    const [isDisputeModalVisible, setIsDisputeModalVisible] = useState(false); // Состояние для модального окна спора
-    const [isResolveModalVisible, setIsResolveModalVisible] = useState(false); // Состояние для модального окна
-    const [files, setFiles] = useState([]); // Состояние для хранения файлов
-    const [isFileUploadModalVisible, setIsFileUploadModalVisible] = useState(false); // Состояние для модального окна загрузки файла
-    const [selectedDispute, setSelectedDispute] = useState(null); // Выбранный спор для разрешения
-    const [form] = Form.useForm(); // Форма для создания предложения
-    const [topUpForm] = Form.useForm(); // Форма для пополнения баланса
+    const [isModalVisibleModal, setIsModalVisibleModal] = useState(false);
+    const [isTopUpModalVisible, setIsTopUpModalVisible] = useState(false);
+    const [isDisputeModalVisible, setIsDisputeModalVisible] = useState(false);
+    const [isResolveModalVisible, setIsResolveModalVisible] = useState(false);
+    const [files, setFiles] = useState([]);
+    const [isFileUploadModalVisible, setIsFileUploadModalVisible] = useState(false);
+    const [selectedDispute, setSelectedDispute] = useState(null);
+    const [form] = Form.useForm();
+    const [topUpForm] = Form.useForm();
+
+    const [isChatModalVisible, setIsChatModalVisible] = useState(false);
+    const [messages, setMessages] = useState([]);
+    const [stompClient, setStompClient] = useState(null);
+
 
     const token = localStorage.getItem('jwt');
     const decodedToken = token ? jwtDecode(token) : null;
-    const currentUserRole = decodedToken?.role; // Роль текущего пользователя
-    const currentUserUsername = decodedToken?.username; // Username текущего пользователя
+    const currentUserRole = decodedToken?.role;
+    const currentUserUsername = decodedToken?.username;
 
     // Запрос на получение данных по проекту
     const fetchProject = async () => {
@@ -176,12 +184,12 @@ export default function ProjectPage() {
 
     // Открытие модального окна создания заявки
     const showModal = () => {
-        setIsModalVisible(true);
+        setIsModalVisibleModal(true);
     };
 
     // Закрытие модального окна создания заявки
     const handleCancel = () => {
-        setIsModalVisible(false);
+        setIsModalVisibleModal(false);
         form.resetFields(); // Сброс формы
     };
 
@@ -207,6 +215,43 @@ export default function ProjectPage() {
         setIsResolveModalVisible(true); // Открываем модальное окно
     };
 
+    const showChatModal = () => {
+        setIsChatModalVisible(true);
+        connectWebSocket();
+    };
+
+    const handleChatCancel = () => {
+        setIsChatModalVisible(false);
+        if (stompClient) {
+            stompClient.disconnect();
+        }
+    };
+
+    const connectWebSocket = () => {
+        const socket = new SockJS('http://localhost:8080/ws');
+        const client = over(socket);
+
+        client.connect({}, () => {
+            setStompClient(client);
+            client.subscribe(`/topic/project/${projectId}`, (message) => {
+                const newMessage = JSON.parse(message.body);
+                setMessages((prevMessages) => [...prevMessages, newMessage]);
+            });
+        });
+    };
+
+    const sendMessage = (content) => {
+        if (stompClient && content) {
+            const messageDTO = {
+                projectId: parseInt(projectId),
+                sender: currentUserUsername,
+                content: content,
+                createdAt: new Date().toISOString()
+            };
+            stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(messageDTO));
+        }
+    };
+
     // Обработка отправки формы для создания заявки (предложения по проекту)
     const handleSubmit = async (values) => {
         try {
@@ -229,7 +274,7 @@ export default function ProjectPage() {
             }
 
             message.success('Предложение успешно создано');
-            setIsModalVisible(false);
+            setIsModalVisibleModal(false);
             form.resetFields(); // Сброс формы
             // Обновляем список заявок
             fetchApplications();
@@ -454,9 +499,7 @@ export default function ProjectPage() {
                     {project.status !== 'PENDING' && (
                         (currentUserUsername === project.freelancerUsername) || (currentUserUsername === project.ownerUsername)
                     ) && (
-                        <NavLink to={`/chat/${projectId}`}>
-                            <Button type="primary">Открыть чат</Button>
-                        </NavLink>
+                        <Button type="primary" onClick={showChatModal}>Открыть чат</Button>
                     )}
 
                     {/* Кнопка "Пополнить баланс проекта" доступна только заказчику на этапах PENDING и IN_PROGRESS */}
@@ -599,6 +642,29 @@ export default function ProjectPage() {
                 </Card>
             )}
 
+            <Modal
+                title="Чат"
+                visible={isChatModalVisible}
+                onCancel={handleChatCancel}
+                footer={null}
+            >
+                <div style={{ height: '300px', overflowY: 'scroll', marginBottom: '16px' }}>
+                    {messages.map((msg, index) => (
+                        <div key={index} style={{ marginBottom: '8px' }}>
+                            <Text strong>{msg.sender}: </Text>
+                            <Text>{msg.content}</Text>
+                        </div>
+                    ))}
+                </div>
+                <Input
+                    placeholder="Введите сообщение"
+                    onPressEnter={(e) => {
+                        sendMessage(e.target.value);
+                        e.target.value = '';
+                    }}
+                />
+            </Modal>
+
             {/* Модальное окно для загрузки файла */}
             <Modal
                 title="Загрузить файл"
@@ -680,7 +746,7 @@ export default function ProjectPage() {
             {/* Модальное окно для создания предложения */}
             <Modal
                 title="Создать предложение"
-                visible={isModalVisible}
+                visible={isModalVisibleModal}
                 onCancel={handleCancel}
                 footer={null}
             >

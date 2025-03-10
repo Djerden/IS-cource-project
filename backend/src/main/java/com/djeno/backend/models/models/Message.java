@@ -15,8 +15,8 @@ public class Message {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "chat_id")
-    private Chat chat;
+    @JoinColumn(name = "project_id")
+    private Project project;
 
     @ManyToOne
     @JoinColumn(name = "sender_id")
